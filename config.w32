@@ -1,0 +1,9 @@
+// $Id$
+// vim:ft=javascript
+
+ARG_ENABLE("scalar_objects", "enable scalar_objects support", "no");
+
+if (PHP_SCALAR_OBJECTS != "no") {
+	EXTENSION("scalar_objects", "scalar_objects.c");
+}
+
