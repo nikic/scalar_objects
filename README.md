@@ -12,13 +12,16 @@ of its inconsistent core APIs. This repo provides the means to quickly
 prototype and test new APIs as userland code. Once the APIs are figured out
 it will be proposed for inclusion into PHP.
 
+Note: The ability to register type handlers from userland is just for
+prototyping. It's not something I would actually want in PHP in the end.
+
 Registering type handlers
 -------------------------
 
 Type handlers are registered through `register_primitive_type_handler`. The
 function takes a type name (like "string" or "array") and a class name. The
 class is defined just like any other PHP class. The only difference is that
-it's `$this` variable won't be an object, but rather the primitive type that
+its `$this` variable won't be an object, but rather the primitive type that
 the class operates on:
 
 ```php
@@ -32,6 +35,10 @@ class StringHandler {
 
 register_primitive_type_handler('string', 'StringHandler');
 ```
+
+The valid type names are: `null`, `bool`, `int`, `float`, `string`, `array`
+and `resource`. Not all of those will make sense in practice, but for now they
+are all supported.
 
 Implemented APIs
 ----------------
