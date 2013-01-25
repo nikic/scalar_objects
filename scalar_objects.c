@@ -127,26 +127,46 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	return ZEND_USER_OPCODE_CONTINUE;
 }
 
+static int get_type_from_string(const char *str) {
+	/* Not all of these types will make sense in practice, but for now
+	 * we support all of them. */
+	if (!strcasecmp(str, "null")) {
+		return IS_NULL;
+	} else if (!strcasecmp(str, "bool")) {
+		return IS_BOOL;
+	} else if (!strcasecmp(str, "int")) {
+		return IS_LONG;
+	} else if (!strcasecmp(str, "float")) {
+		return IS_DOUBLE;
+	} else if (!strcasecmp(str, "string")) {
+		return IS_STRING;
+	} else if (!strcasecmp(str, "array")) {
+		return IS_ARRAY;
+	} else if (!strcasecmp(str, "resource")) {
+		return IS_RESOURCE;
+	} else {
+		zend_error(E_WARNING, "Invalid type \"%s\" specified", str);
+		return -1;
+	}
+}
+
 ZEND_FUNCTION(register_primitive_type_handler) {
-	long type;
+	char *type_str;
+	int type_str_len;
+	int type;
 	zend_class_entry *ce = NULL;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "lC", &type, &ce) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sC", &type_str, &type_str_len, &ce) == FAILURE) {
 		return;
 	}
 
-	if (type < 0 || type > SCALAR_OBJECTS_MAX_HANDLER) {
-		zend_error(E_WARNING, "Invalid type specifier %ld, must be in range 0..%d", type, SCALAR_OBJECTS_MAX_HANDLER);
-		return;
-	}
-
-	if (type == IS_OBJECT) {
-		zend_error(E_WARNING, "Cannot specify handler for objects");
+	type = get_type_from_string(type_str);
+	if (type == -1) {
 		return;
 	}
 
 	if (SCALAR_OBJECTS_G(handlers)[type] != NULL) {
-		zend_error(E_WARNING, "Handler for type %ld already exists, overriding", type);
+		zend_error(E_WARNING, "Handler for type \"%s\" already exists, overriding", type_str);
 	}
 
 	SCALAR_OBJECTS_G(handlers)[type] = ce;
