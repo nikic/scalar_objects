@@ -1,6 +1,8 @@
 <?php
 
-class StringHandler {
+namespace str;
+
+class Handler {
     public function length() {
         return strlen($this);
     }
