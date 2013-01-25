@@ -48,4 +48,12 @@ class StringHandler {
     public function reverse() {
         return strrev($this);
     }
+
+    public function toLower() {
+        return strtolower($this);
+    }
+
+    public function toUpper() {
+        return strtoupper($this);
+    }
 }

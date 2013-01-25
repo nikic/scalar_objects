@@ -32,6 +32,13 @@ p('reverse()',         $str->reverse());
 p('chunk()',           $str->chunk());
 p('chunk(2)',          $str->chunk(2));
 
+$str = "FoObAr";
+
+echo "\nWorking on string \"$str\"\n\n";
+
+p('toLower()',         $str->toLower());
+p('toUpper()',         $str->toUpper());
+
 $str = "123,456,789";
 
 echo "\nWorking on string \"$str\"\n\n";
@@ -81,6 +88,11 @@ chunk(2): array(3) {
   [2]=>
   string(2) "ar"
 }
+
+Working on string "FoObAr"
+
+toLower(): string(6) "foobar"
+toUpper(): string(6) "FOOBAR"
 
 Working on string "123,456,789"
 
