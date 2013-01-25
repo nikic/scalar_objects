@@ -25,6 +25,22 @@ class StringHandler {
         return $this->lastIndexOf($string) === $this->length() - $string->length();
     }
 
+    public function slice($offset, $length = null) {
+        if (null === $length) {
+            return substr($this, $offset);
+        } else {
+            return substr($this, $offset, $length);
+        }
+    }
+
+    public function split($separator, $limit = PHP_INT_MAX) {
+        return explode($separator, $this, $limit);
+    }
+
+    public function chunk($chunkLength = 1) {
+        return str_split($this, $chunkLength);
+    }
+
     public function repeat($times) {
         return str_repeat($this, $times);
     }
