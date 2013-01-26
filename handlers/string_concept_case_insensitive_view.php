@@ -18,7 +18,9 @@
 namespace str;
 
 class HandlerWithCaseInsensitiveView extends Handler {
-    return new CaseInsensitiveView($this);
+    public function caseInsensitive() {
+        return new CaseInsensitiveView($this);
+    }
 }
 
 class CaseInsensitiveView {
@@ -45,16 +47,17 @@ class CaseInsensitiveView {
     }
 
     public function endsWith($string) {
-        return $this->lastIndexOf($string) === $this->str->length() - $string->str->length();
+        return $this->lastIndexOf($string) === $this->str->length() - $string->length();
     }
 
     public function count($string, $offset = 0, $length = null) {
-        $slice = $string->slice($offset, $length);
+        $slice = $this->str->slice($offset, $length)->caseInsensitive();
 
         $index = 0;
         $count = 0;
-        while (false !== $index = $this->indexOf($string, $index + $string->length())) {
+        while (false !== $index = $slice->indexOf($string, $index)) {
             ++$count;
+            $index += $string->length();
         }
 
         return $count;

@@ -41,6 +41,20 @@ ZEND_GET_MODULE(scalar_objects)
 #define SO_EX_T(offset) (*(temp_variable *) ((char *) execute_data->Ts + offset))
 #endif
 
+#define FREE_OP(should_free)                                           \
+    if (should_free.var) {                                             \
+        if ((zend_uintptr_t)should_free.var & 1L) {                    \
+            zval_dtor((zval*)((zend_uintptr_t)should_free.var & ~1L)); \
+        } else {                                                       \
+            zval_ptr_dtor(&should_free.var);                           \
+        }                                                              \
+    }
+
+#define FREE_OP_IF_VAR(should_free)                                                 \
+    if (should_free.var != NULL && (((zend_uintptr_t)should_free.var & 1L) == 0)) { \
+        zval_ptr_dtor(&should_free.var);                                            \
+    }
+
 static zval *get_zval_safe(int op_type, const znode_op *node, const zend_execute_data *execute_data) {
 	switch (op_type) {
 		case IS_CONST:
@@ -147,6 +161,9 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	execute_data->called_scope = ce;
 	execute_data->object = obj;
 #endif
+
+	FREE_OP(free_op2);
+	FREE_OP_IF_VAR(free_op1);
 
 	execute_data->opline++;
 	return ZEND_USER_OPCODE_CONTINUE;

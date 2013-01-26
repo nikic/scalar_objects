@@ -6,6 +6,9 @@ Testing string handler methods
 <?php
 
 require __DIR__ . '/bootstrap.php';
+require __DIR__ . '/../handlers/string.php';
+
+register_primitive_type_handler('string', 'str\\Handler');
 
 $str = 'foobar';
 
