@@ -6,5 +6,5 @@ script:
   - phpize
   - ./configure --enable-scalar-objects
   - make
-  - TEST_PHP_EXECUTABLE=/home/travis/.phpenv/versions/5.4.9/bin/php php run-tests.php -d extension=`pwd`/modules/scalar_objects.so -q -v
-  - cat tests/*.diff
+  - TEST_PHP_EXECUTABLE=/home/travis/.phpenv/versions/5.4.9/bin/php php run-tests.php -d extension=`pwd`/modules/scalar_objects.so -q
+  - cat tests/*.diff || echo
