@@ -97,7 +97,7 @@ static zval *get_object_zval_real(
 ) {
 	if (op_type == IS_UNUSED) {
 		if (!EG(This)) {
-			zend_error_noreturn(E_ERROR, "Using $this when not in object context");
+			zend_error(E_ERROR, "Using $this when not in object context");
 		}
 
 		should_free->var = 0;
@@ -130,7 +130,7 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 
 	ce = SCALAR_OBJECTS_G(handlers)[Z_TYPE_P(obj)];
 	if (!ce) {
-		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", Z_STRVAL_P(method));
+		zend_error(E_ERROR, "Call to a member function %s() on a non-object", Z_STRVAL_P(method));
 	}
 
 	if (ce->get_static_method) {
@@ -143,7 +143,7 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	}
 
 	if (!fbc) {
-		zend_error_noreturn(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
+		zend_error(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
 	}
 
 	Z_ADDREF_P(obj);
