@@ -33,16 +33,24 @@ ZEND_DECLARE_MODULE_GLOBALS(scalar_objects)
 ZEND_GET_MODULE(scalar_objects)
 #endif
 
+#ifdef ZEND_ENGINE_2_5
+#define SO_EX_CV(i)     (*EX_CV_NUM(execute_data, i))
+#define SO_EX_T(offset) (*EX_TMP_VAR(execute_data, offset))
+#else
+#define SO_EX_CV(i) (execute_data)->CVs[(i)]
+#define SO_EX_T(offset) (*(temp_variable *) ((char *) execute_data->Ts + offset))
+#endif
+
 static zval *get_zval_safe(int op_type, const znode_op *node, const zend_execute_data *execute_data) {
 	switch (op_type) {
 		case IS_CONST:
 			return node->zv;
 		case IS_TMP_VAR:
-			return &EX_TMP_VAR(execute_data, node->var)->tmp_var;
+			return &SO_EX_T(node->var).tmp_var;
 		case IS_VAR:
-			return EX_TMP_VAR(execute_data, node->var)->var.ptr;
+			return SO_EX_T(node->var).var.ptr;
 		case IS_CV: {
-			zval **tmp = *EX_CV_NUM(execute_data, node->constant);
+			zval **tmp = SO_EX_CV(node->constant);
 			return tmp ? *tmp : NULL;
 		}
 		default:
@@ -58,6 +66,17 @@ static zval *get_object_zval_safe(int op_type, const znode_op *node, const zend_
 	}
 }
 
+static zval *get_zval_real(
+	int op_type, const znode_op *node, const zend_execute_data *execute_data,
+	zend_free_op *should_free, int type TSRMLS_DC
+) {
+#ifdef ZEND_ENGINE_2_5
+	return zend_get_zval_ptr(op_type, node, execute_data, should_free, type TSRMLS_CC);
+#else
+	return zend_get_zval_ptr(op_type, node, execute_data->Ts, should_free, type TSRMLS_CC);
+#endif
+}
+
 static zval *get_object_zval_real(
 	int op_type, const znode_op *node, const zend_execute_data *execute_data,
 	zend_free_op *should_free, int type TSRMLS_DC
@@ -70,7 +89,7 @@ static zval *get_object_zval_real(
 		should_free->var = 0;
 		return EG(This);
 	} else {
-		return zend_get_zval_ptr(op_type, node, execute_data, should_free, type TSRMLS_CC);
+		return get_zval_real(op_type, node, execute_data, should_free, type TSRMLS_CC);
 	}
 }
 
@@ -80,7 +99,7 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	zend_free_op free_op1, free_op2;
 	zval *obj, *method;
 	zend_class_entry *ce;
-	call_slot *call;
+	zend_function *fbc;
 
 	/* First we fetch the ops without refcount changes or errors. Then we check whether we want
 	 * to handle this opcode ourselves or fall back to the original opcode. Only once we know for
@@ -93,35 +112,41 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	}
 
 	obj = get_object_zval_real(opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC);
-	method = zend_get_zval_ptr(opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC);
+	method = get_zval_real(opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC);
 
 	ce = SCALAR_OBJECTS_G(handlers)[Z_TYPE_P(obj)];
 	if (!ce) {
 		zend_error_noreturn(E_ERROR, "Call to a member function %s() on a non-object", Z_STRVAL_P(method));
 	}
 
-	call = execute_data->call_slots + opline->result.num;
-
 	if (ce->get_static_method) {
-		call->fbc = ce->get_static_method(ce, Z_STRVAL_P(method), Z_STRLEN_P(method) TSRMLS_CC);
+		fbc = ce->get_static_method(ce, Z_STRVAL_P(method), Z_STRLEN_P(method) TSRMLS_CC);
 	} else {
-		call->fbc = zend_std_get_static_method(
+		fbc = zend_std_get_static_method(
 			ce, Z_STRVAL_P(method), Z_STRLEN_P(method),
 			opline->op2_type == IS_CONST ? opline->op2.literal + 1 : NULL TSRMLS_CC
 		);
 	}
 
-	if (!call->fbc) {
+	if (!fbc) {
 		zend_error_noreturn(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
 	}
 
-	call->called_scope = ce;
-
-	call->object = obj;
 	Z_ADDREF_P(obj);
 
-	call->is_ctor_call = 0;
-	execute_data->call = call;
+#ifdef ZEND_ENGINE_2_5
+	execute_data->call = execute_data->call_slots + opline->result.num;
+	execute_data->call->fbc = fbc;
+	execute_data->call->called_scope = ce;
+	execute_data->call->object = obj;
+	execute_data->call->is_ctor_call = 0;
+#else
+	zend_ptr_stack_3_push(&EG(arg_types_stack), execute_data->fbc, execute_data->object, execute_data->called_scope);
+
+	execute_data->fbc = fbc;
+	execute_data->called_scope = ce;
+	execute_data->object = obj;
+#endif
 
 	execute_data->opline++;
 	return ZEND_USER_OPCODE_CONTINUE;
