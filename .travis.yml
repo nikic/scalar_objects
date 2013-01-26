@@ -2,5 +2,5 @@ language: php
 php: 5.4
 
 before_script: phpize && ./configure && make && sudo make install
-env: REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=/usr/bin/php
-script: php run-tests.php -p /usr/bin/php -dextension=scalar_objects.so
+env: REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=/usr/local/bin/php
+script: php run-tests.php -dextension=scalar_objects.so
