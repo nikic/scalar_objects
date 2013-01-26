@@ -37,7 +37,7 @@ ZEND_GET_MODULE(scalar_objects)
 #define SO_EX_CV(i)     (*EX_CV_NUM(execute_data, i))
 #define SO_EX_T(offset) (*EX_TMP_VAR(execute_data, offset))
 #else
-#define SO_EX_CV(i) (execute_data)->CVs[(i)]
+#define SO_EX_CV(i)     (execute_data)->CVs[(i)]
 #define SO_EX_T(offset) (*(temp_variable *) ((char *) execute_data->Ts + offset))
 #endif
 
@@ -229,7 +229,7 @@ zend_module_entry scalar_objects_module_entry = {
 };
 
 static ZEND_GINIT_FUNCTION(scalar_objects) {
-	memset(SCALAR_OBJECTS_G(handlers), 0, SCALAR_OBJECTS_NUM_HANDLERS * sizeof(zend_class_entry *));
+	memset(scalar_objects_globals->handlers, 0, SCALAR_OBJECTS_NUM_HANDLERS * sizeof(zend_class_entry *));
 }
 
 ZEND_MINIT_FUNCTION(scalar_objects) {
