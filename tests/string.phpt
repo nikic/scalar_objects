@@ -71,6 +71,11 @@ p(
     $str->replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])
 );
 p('replaceOnce("some", "SOME")', $str->replaceOnce("some", "SOME"));
+p('replace("some", "SOME", 1)', $str->replace("some", "SOME", 1));
+p(
+	'replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3)',
+	$str->replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3)
+);
 
 p('count("string")',     $str->count("string"));
 p('count("some")',       $str->count("some"));
@@ -179,6 +184,9 @@ string(27) "SOME STRING with SOME WORDS"
 replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"]):
 string(27) "SOME STRING with SOME WORDS"
 replaceOnce("some", "SOME"): string(27) "SOME string with some words"
+replace("some", "SOME", 1): string(27) "SOME string with some words"
+replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3):
+string(27) "SOME STRING with SOME words"
 count("string"): int(1)
 count("some"): int(2)
 count("some", 5): int(1)

@@ -53,18 +53,21 @@ class Handler {
 
     /* This function has multiple prototypes:
      *
-     * replace(array(string $from => string $to) $replacements)
-     * replace(string $from, string $to)
-     * replace(array(string) $from, array(string) $to)
-     *
-     * This function could maybe have an additional $limit parameter. But as PHP currently
-     * has no internal functions to do that I won't implement it now.
+     * replace(array(string $from => string $to) $replacements, int $limit = PHP_MAX_INT)
+     * replace(string $from, string $to, int $limit = PHP_MAX_INT)
+     * replace(string[] $from, string[] $to, int $limit = PHP_MAX_INT)
      */
-    public function replace($arg1, $arg2 = null) {
-        if (null === $arg2) {
-            return strtr($this, $arg1);
+    public function replace($from, $to = null, $limit = null) {
+        if (is_array($from) && !is_array($to)) {
+            $limit = $to;
+            $to    = array_values($from);
+            $from  = array_keys($from);
+        }
+
+        if (null !== $limit) {
+            return $this->replaceWithLimit($from, $to, $limit);
         } else {
-            return str_replace($arg1, $arg2, $this);
+            return str_replace($from, $to, $this);
         }
     }
 
@@ -114,5 +117,51 @@ class Handler {
 
     public function trimRight($characters = " \t\n\r\v\0") {
         return rtrim($this, $characters);
+    }
+
+    protected function replaceWithLimit($from, $to, $limit) {
+        $limit = (int) $limit;
+        if ($limit <= 0) {
+            throw new InvalidArgumentException('Limit has to be positive');
+        }
+
+        if (!is_array($from)) {
+            return $this->replaceWithLimitSingle($this, $from, $to, $limit);
+        }
+
+        $str = $this;
+
+        reset($to);
+        foreach ($from as $fromStr) {
+            $toStr = current($to);
+            if (false !== $toStr) {
+                next($to);
+            } else {
+                $toStr = '';
+            }
+
+            $str = $this->replaceWithLimitSingle($str, $fromStr, $toStr, $limit);
+            if (0 === $limit) {
+                return $str;
+            }
+        }
+
+        return $str;
+    }
+
+    protected function replaceWithLimitSingle($str, $from, $to, &$limit) {
+        $lenDiff = $to->length() - $from->length();
+        $index = 0;
+
+        while (false !== $index = $str->indexOf($from, $index)) {
+            $str = $str->replaceSlice($to, $index, $to->length()); 
+            $index += $lenDiff;
+
+            if (0 === --$limit) {
+                return $str;
+            }
+        }
+
+        return $str;
     }
 }
