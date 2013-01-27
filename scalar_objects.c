@@ -224,8 +224,6 @@ const zend_function_entry scalar_objects_functions[] = {
 	ZEND_FE_END
 };
 
-static ZEND_GINIT_FUNCTION(scalar_objects);
-
 zend_module_entry scalar_objects_module_entry = {
 #if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
@@ -239,15 +237,11 @@ zend_module_entry scalar_objects_module_entry = {
 	ZEND_MINFO(scalar_objects),
 	"0.1",
 	ZEND_MODULE_GLOBALS(scalar_objects),
-	ZEND_GINIT(scalar_objects),
+	NULL,
 	NULL,
 	NULL,
 	STANDARD_MODULE_PROPERTIES_EX
 };
-
-static ZEND_GINIT_FUNCTION(scalar_objects) {
-	memset(scalar_objects_globals->handlers, 0, SCALAR_OBJECTS_NUM_HANDLERS * sizeof(zend_class_entry *));
-}
 
 ZEND_MINIT_FUNCTION(scalar_objects) {
 	zend_set_user_opcode_handler(ZEND_INIT_METHOD_CALL, scalar_objects_method_call_handler);
@@ -262,6 +256,8 @@ ZEND_MSHUTDOWN_FUNCTION(scalar_objects)
 
 ZEND_RINIT_FUNCTION(scalar_objects)
 {
+	memset(SCALAR_OBJECTS_G(handlers), 0, SCALAR_OBJECTS_NUM_HANDLERS * sizeof(zend_class_entry *));
+
 	return SUCCESS;
 }
 
