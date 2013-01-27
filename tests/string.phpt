@@ -61,10 +61,6 @@ echo "\nWorking on string \"$str\"\n\n";
 
 p('replace("some", "SOME")', $str->replace("some", "SOME"));
 p(
-    'replace(["some", "string", "words"], ["SOME", "STRING", "WORDS"])',
-    $str->replace(["some", "string", "words"], ["SOME", "STRING", "WORDS"])
-);
-p(
     'replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])',
     $str->replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])
 );
@@ -174,8 +170,6 @@ split(",", -1): array(2) {
 Working on string "some string with some words"
 
 replace("some", "SOME"): string(27) "SOME string with SOME words"
-replace(["some", "string", "words"], ["SOME", "STRING", "WORDS"]):
-string(27) "SOME STRING with SOME WORDS"
 replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"]):
 string(27) "SOME STRING with SOME WORDS"
 replace("some", "SOME", 1): string(27) "SOME string with some words"
