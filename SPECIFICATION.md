@@ -52,6 +52,8 @@ string String::unescapeXml();
 string String::escapeJs();
 string String::unescapeJs();
 
+string String::convert(string $charset, bool $translit=false); // default: ignore, see http://de1.php.net/manual/en/function.iconv.php
+
 array String::parseUrl($parseQuery=false); // TODO check http://de.php.net/parse_url, http://de.php.net/parse_str
 
 Mutable:
@@ -60,6 +62,14 @@ $str->Mutable()->replace("foo", "bar"); // $str==="bar"
 
 Chaining:
 $html = "Hello :name"->template(["name"=>"world"])->escapeHtml();
+
+Backporting / Userland-only:
+$html = String("Hello :name")->template(["name"=>"world"])->escapeHtml();
+
+Default charset: UTF-8
+
+Charset conversion:
+$sub = String("FooBar", "ISO-8859-1")->subStr(3); // === iconv("ISO-8859-1", "UTF-8", "FooBar")->subStr(3)
 
 
 TODO:
