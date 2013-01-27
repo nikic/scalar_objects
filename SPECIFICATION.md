@@ -1,3 +1,4 @@
+<pre>
 String Class
 ============
 
@@ -71,3 +72,4 @@ check js, jQuery, underscore.js, c#
 md5/sha1
 error handling: parameter = false, parameter = null, parameter = object (__toString()? __toArray()?)
 error handling: negative parameters for start, end, length, offset, etc.
+</pre>
