@@ -48,8 +48,8 @@ string String::stripTagAttributes($allowableAttributes); // TODO check
 string String::containsTags(); // TODO check
 bool String::containsTags(); // TODO check
 string String::escapeXml();
-string String::escapeJs();
 string String::unescapeXml();
+string String::escapeJs();
 string String::unescapeJs();
 
 array String::parseUrl($parseQuery=false); // TODO check http://de.php.net/parse_url, http://de.php.net/parse_str
@@ -65,6 +65,8 @@ $html = "Hello :name"->template(["name"=>"world"])->escapeHtml();
 TODO:
 String::Format
 substr_count
+html_ entity_ decode
+htmlentities
 substr_replace
 str_split explode
 wordwrap
