@@ -2,7 +2,7 @@
 String Class
 ============
 
-bool String::contains($subString);
+bool String::contains(string $subString);
 bool String::containsAll(array $elements);
 bool String::containsAny(array $elements);
 bool String::isNumeric();
@@ -21,11 +21,11 @@ String String::lcFirst();
 
 String String::trim(string $chars="..."); // e.g. "abbcba"->trim("ab") === "c"
 String String::trim(array $elements); // e.g. "abbbba"->trim(["ab", "ba"]) === "bb" // TODO check naming
-String String::trimLeft($chars); // TODO array
-String String::trimRight($chars); // TODO array
+String String::trimLeft(string $chars); // TODO array
+String String::trimRight(string $chars); // TODO array
 String String::padLeft($length, string $chars=" "); // "20"->padLeft(4, " ") === "  20"
 String String::padRight($length, string $chars=" ");
-String String::repeat(uint $times);
+String String::repeat(uint $times); // TODO force uint?
 
 String String::template(array $vars); // TODO syntax: printf?, see http://underscorejs.org/#template
 
@@ -52,7 +52,7 @@ string String::unescapeJs();
 
 Mutable:
 $str = "foo"; // Immutable by default
-$str->Mutable()->replace("foo", "bar");
+$str->Mutable()->replace("foo", "bar"); // $str==="bar"
 
 Chaining:
 $html = "Hello :name"->template(["name"=>"world"])->escapeHtml();
