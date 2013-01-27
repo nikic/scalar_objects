@@ -1,5 +1,5 @@
 <pre>
-String Class
+string Class
 ============
 
 bool String::contains(string $subString);
@@ -7,27 +7,30 @@ bool String::containsAll(array $elements);
 bool String::containsAny(array $elements);
 bool String::isNumeric();
 
-String::subStr($start, $length); // JS-like
-String::subString($start, $end); // JS-like
+String::subStr($start, $length); // JS-like, TODO return?
+String::subString($start, $end); // JS-like, TODO return?
 
-String::replace($from, $to, $limit=null); // TODO check arrays
-String::replacePairs(array $pairs); // TODO limit?
+String::replace($from, $to, $limit=null); // TODO check arrays, TODO return?
+String::replacePairs(array $pairs); // TODO limit?, TODO return?
 
-String String::reverse();
-String String::toLower();
-String String::toUpper();
-String String::ucFirst();
-String String::lcFirst();
+string String::reverse();
+string String::toLower();
+string String::toUpper();
+string String::ucFirst();
+string String::lcFirst();
 
-String String::trim(string $chars="..."); // e.g. "abbcba"->trim("ab") === "c"
-String String::trim(array $elements); // e.g. "abbbba"->trim(["ab", "ba"]) === "bb" // TODO check naming
-String String::trimLeft(string $chars); // TODO array
-String String::trimRight(string $chars); // TODO array
-String String::padLeft($length, string $chars=" "); // "20"->padLeft(4, " ") === "  20"
-String String::padRight($length, string $chars=" ");
-String String::repeat(uint $times); // TODO force uint?
+string String::trim(string $chars="..."); // e.g. "abbcba"->trim("ab") === "c"
+string String::trim(array $elements); // e.g. "abbbba"->trim(["ab", "ba"]) === "bb" // TODO check naming
+string String::trimLeft(string $chars); // TODO array
+string String::trimRight(string $chars); // TODO array
+string String::padLeft($length, string $chars=" "); // "20"->padLeft(4, " ") === "  20"
+string String::padRight($length, string $chars=" ");
+string String::repeat(uint $times); // TODO force uint?
 
-String String::template(array $vars); // TODO syntax: printf?, see http://underscorejs.org/#template
+string String::template(array $vars); // TODO syntax: printf?, see http://underscorejs.org/#template
+
+array String::split(string $separator, uint $limit=null); // TODO force uint?
+array String::split(array $separators, $limit=null); // TODO naming?
 
 int String::length();
 int String::indexOf($subString, $offset=0); // start with 0, return -1 if not found // TODO check array
@@ -49,6 +52,7 @@ string String::escapeJs();
 string String::unescapeXml();
 string String::unescapeJs();
 
+array String::parseUrl($parseQuery=false); // TODO check http://de.php.net/parse_url, http://de.php.net/parse_str
 
 Mutable:
 $str = "foo"; // Immutable by default
@@ -63,13 +67,17 @@ String::Format
 substr_count
 substr_replace
 str_split explode
-String::split(string $separator, $limit=null);
-String::split(array $separators, $limit=null);
+wordwrap
+str_word_count
+nl2br => plainToHtml?
+addslashes
+urldecode, urlencode
+basename, dirname ?
 String::match(string $regex) => return matches?
 check https://github.com/Respect/Validation
 check filter: http://de.php.net/filter
 check js, jQuery, underscore.js, c#
-md5/sha1
+sha1
 error handling: parameter = false, parameter = null, parameter = object (__toString()? __toArray()?)
 error handling: negative parameters for start, end, length, offset, etc.
 </pre>
