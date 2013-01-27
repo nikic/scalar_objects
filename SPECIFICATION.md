@@ -68,14 +68,16 @@ substr_count
 html_ entity_ decode
 htmlentities
 substr_replace
-str_split explode
+str_split explode preg_split chunk_split
 wordwrap
 str_word_count
 nl2br => plainToHtml?
 addslashes
 urldecode, urlencode
 basename, dirname ?
-String::match(string $regex) => return matches?
+String::match(string $regex) preg_match preg_match_all => return matches?
+preg_replace
+check callback functions
 check https://github.com/Respect/Validation
 check filter: http://de.php.net/filter
 check js, jQuery, underscore.js, c#
