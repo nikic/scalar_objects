@@ -7,8 +7,8 @@ bool String::containsAll(array $elements);
 bool String::containsAny(array $elements);
 bool String::isNumeric();
 
-String::subStr($start, $length); // JS-like, TODO return?
-String::subString($start, $end); // JS-like, TODO return?
+string String::subStr($start, $length);
+string String::subString($start, $end); // JS-like
 
 String::replace($from, $to, $limit=null); // TODO check arrays, TODO return?
 String::replacePairs(array $pairs); // TODO limit?, TODO return?
