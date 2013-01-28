@@ -58,11 +58,6 @@ In order to compile and install the extension run the following commands:
     make
     sudo make install
 
-Note: I did not actually test those commands. I'm developing this in the `ext/`
-directory of PHP and as such the extension is included in the main `./configure`
-after running `./buildconf`. So the commands are just guessing on how I think
-it should work. If it doesn't work, give me a ping :)
-
 Testing the extension
 ---------------------
 

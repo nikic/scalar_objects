@@ -105,6 +105,14 @@ class Handler {
         return rtrim($this, $characters);
     }
 
+    public function padLeft($length, $padString = " ") {
+        return str_pad($this, $length, $padString, STR_PAD_LEFT);
+    }
+
+    public function padRight($length, $padString = " ") {
+        return str_pad($this, $length, $padString, STR_PAD_RIGHT);
+    }
+
     protected function verifyLimit($limit) {
         $limit = (int) $limit;
         if ($limit <= 0) {

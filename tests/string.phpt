@@ -39,6 +39,11 @@ p('reverse()',         $str->reverse());
 p('chunk()',           $str->chunk());
 p('chunk(2)',          $str->chunk(2));
 
+p('padLeft(15)',         $str->padLeft(15));
+p('padLeft(15, "123")',  $str->padLeft(15, "123"));
+p('padRight(15)',        $str->padRight(15));
+p('padRight(15, "123")', $str->padRight(15, "123"));
+
 $str = "FoObAr";
 
 echo "\nWorking on string \"$str\"\n\n";
@@ -134,6 +139,10 @@ chunk(2): array(3) {
   [2]=>
   string(2) "ar"
 }
+padLeft(15): string(15) "         foobar"
+padLeft(15, "123"): string(15) "123123123foobar"
+padRight(15): string(15) "foobar         "
+padRight(15, "123"): string(15) "foobar123123123"
 
 Working on string "FoObAr"
 
