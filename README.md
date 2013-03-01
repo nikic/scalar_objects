@@ -1,5 +1,5 @@
 Add support for method calls on primitive types in PHP
-=====================================================
+======================================================
 
 This extension implements the ability to register a class that handles the
 method calls to a certain primitive type (string, array, ...). As such it

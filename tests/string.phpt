@@ -20,6 +20,8 @@ p('indexOf("o")',      $str->indexOf("o"));
 p('lastIndexOf("o")',  $str->lastIndexOf("o"));
 p('contains("ooba")',  $str->contains("ooba"));
 p('contains("aboo")',  $str->contains("aboo"));
+p('matches("/oo?ba/")',$str->matches("/oo?ba/"));
+p('matches("/ab?oo/")',$str->matches("/ab?oo/"));
 p('startsWith("foo")', $str->startsWith("foo"));
 p('startsWith("bar")', $str->startsWith("bar"));
 p('endsWith("bar")',   $str->endsWith("bar"));
@@ -69,6 +71,7 @@ p(
     'replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])',
     $str->replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])
 );
+p('replaceOnce("some", "SOME")', $str->replaceOnce("some", "SOME"));
 p('replace("some", "SOME", 1)', $str->replace("some", "SOME", 1));
 p(
 	'replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3)',
@@ -105,6 +108,8 @@ indexOf("o"): int(1)
 lastIndexOf("o"): int(2)
 contains("ooba"): bool(true)
 contains("aboo"): bool(false)
+matches("/oo?ba/"): int(1)
+matches("/ab?oo/"): int(0)
 startsWith("foo"): bool(true)
 startsWith("bar"): bool(false)
 endsWith("bar"): bool(true)
@@ -181,6 +186,7 @@ Working on string "some string with some words"
 replace("some", "SOME"): string(27) "SOME string with SOME words"
 replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"]):
 string(27) "SOME STRING with SOME WORDS"
+replaceOnce("some", "SOME"): string(27) "SOME string with some words"
 replace("some", "SOME", 1): string(27) "SOME string with some words"
 replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3):
 string(27) "SOME STRING with SOME words"

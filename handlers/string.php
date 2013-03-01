@@ -69,6 +69,18 @@ class Handler {
         return $this->replaceWithLimit($this, $from, $to, $limit);
     }
 
+    public function replaceOnce($search, $replace) {
+        $start = strpos($this, $search);
+        if ($start===false) {
+            return $this;
+        }
+        return substr_replace($this, $replace, $start, strlen($search));
+    }
+
+    public function matches($pattern) {
+        return preg_match($pattern, $this);
+    }
+
     public function split($separator, $limit = PHP_INT_MAX) {
         return explode($separator, $this, $limit);
     }
