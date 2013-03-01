@@ -6,4 +6,4 @@ before_script:
   - phpize
   - ./configure --enable-scalar-objects
   - make
-script: REPORT_EXIT_STATUS=1 TEST_PHP_EXECUTABLE=/home/travis/.phpenv/versions/5.4.9/bin/php php run-tests.php --show-diff -d extension=`pwd`/modules/scalar_objects.so -q
+script: REPORT_EXIT_STATUS=1 php run-tests.php -p `which php` --show-diff -d extension=`pwd`/modules/scalar_objects.so -q
