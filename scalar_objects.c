@@ -55,7 +55,9 @@ ZEND_GET_MODULE(scalar_objects)
         zval_ptr_dtor(&should_free.var);                                            \
     }
 
-static zval *get_zval_safe(int op_type, const znode_op *node, const zend_execute_data *execute_data) {
+static zval *get_zval_ptr_safe(
+	int op_type, const znode_op *node, const zend_execute_data *execute_data
+) {
 	switch (op_type) {
 		case IS_CONST:
 			return node->zv;
@@ -72,15 +74,17 @@ static zval *get_zval_safe(int op_type, const znode_op *node, const zend_execute
 	}
 }
 
-static zval *get_object_zval_safe(int op_type, const znode_op *node, const zend_execute_data *execute_data TSRMLS_DC) {
+static zval *get_object_zval_ptr_safe(
+	int op_type, const znode_op *node, const zend_execute_data *execute_data TSRMLS_DC
+) {
 	if (op_type == IS_UNUSED) {
 		return EG(This);
 	} else {
-		return get_zval_safe(op_type, node, execute_data);
+		return get_zval_ptr_safe(op_type, node, execute_data);
 	}
 }
 
-static zval *get_zval_real(
+static zval *get_zval_ptr_real(
 	int op_type, const znode_op *node, const zend_execute_data *execute_data,
 	zend_free_op *should_free, int type TSRMLS_DC
 ) {
@@ -91,7 +95,7 @@ static zval *get_zval_real(
 #endif
 }
 
-static zval *get_object_zval_real(
+static zval *get_object_zval_ptr_real(
 	int op_type, const znode_op *node, const zend_execute_data *execute_data,
 	zend_free_op *should_free, int type TSRMLS_DC
 ) {
@@ -103,7 +107,34 @@ static zval *get_object_zval_real(
 		should_free->var = 0;
 		return EG(This);
 	} else {
-		return get_zval_real(op_type, node, execute_data, should_free, type TSRMLS_CC);
+		return get_zval_ptr_real(op_type, node, execute_data, should_free, type TSRMLS_CC);
+	}
+}
+
+static zval **get_zval_ptr_ptr_real(
+	int op_type, const znode_op *node, const zend_execute_data *execute_data,
+	zend_free_op *should_free, int type TSRMLS_DC
+) {
+#ifdef ZEND_ENGINE_2_5
+	return zend_get_zval_ptr_ptr(op_type, node, execute_data, should_free, type TSRMLS_CC);
+#else
+	return zend_get_zval_ptr_ptr(op_type, node, execute_data->Ts, should_free, type TSRMLS_CC);
+#endif
+}
+
+static zval **get_object_zval_ptr_ptr_real(
+	int op_type, const znode_op *node, const zend_execute_data *execute_data,
+	zend_free_op *should_free, int type TSRMLS_DC
+) {
+	if (op_type == IS_UNUSED) {
+		if (!EG(This)) {
+			zend_error(E_ERROR, "Using $this when not in object context");
+		}
+
+		should_free->var = 0;
+		return &EG(This);
+	} else {
+		return get_zval_ptr_ptr_real(op_type, node, execute_data, should_free, type TSRMLS_CC);
 	}
 }
 
@@ -118,15 +149,12 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	/* First we fetch the ops without refcount changes or errors. Then we check whether we want
 	 * to handle this opcode ourselves or fall back to the original opcode. Only once we know for
 	 * certain that we will not fall back the ops are fetched for real. */
-	obj = get_object_zval_safe(opline->op1_type, &opline->op1, execute_data TSRMLS_CC);
-	method = get_zval_safe(opline->op2_type, &opline->op2, execute_data);
+	obj = get_object_zval_ptr_safe(opline->op1_type, &opline->op1, execute_data TSRMLS_CC);
+	method = get_zval_ptr_safe(opline->op2_type, &opline->op2, execute_data);
 
 	if (!obj || Z_TYPE_P(obj) == IS_OBJECT || Z_TYPE_P(method) != IS_STRING) {
 		return ZEND_USER_OPCODE_DISPATCH;
 	}
-
-	obj = get_object_zval_real(opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC);
-	method = get_zval_real(opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC);
 
 	ce = SCALAR_OBJECTS_G(handlers)[Z_TYPE_P(obj)];
 	if (!ce) {
@@ -144,6 +172,25 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 
 	if (!fbc) {
 		zend_error(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
+	}
+
+	method = get_zval_ptr_real(opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC);
+
+	{
+		zval **obj_ptr = get_object_zval_ptr_ptr_real(
+			opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC
+		);
+
+		if (obj_ptr) {
+			SEPARATE_ZVAL_TO_MAKE_IS_REF(obj_ptr);
+			obj = *obj_ptr;
+		} else {
+			/* I think that we currently can't hit this case because INIT_METHOD_CALL is specd
+			 * only for CV and VAR and not for TMP_VAR and CONST. Still leaving it in to be sure. */
+			obj = get_object_zval_ptr_real(
+				opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC
+			);
+		}
 	}
 
 	Z_ADDREF_P(obj);
