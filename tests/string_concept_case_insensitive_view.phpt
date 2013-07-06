@@ -35,6 +35,8 @@ p(
     'replace(["FOO" => "BAR", "BAR" => "FOO"])',
     $ci->replace(["FOO" => "BAR", "BAR" => "FOO"])
 );
+p('split(" ")',             $ci->split(" "));
+p('split(" ", 2)',          $ci->split(" ", 2));
 
 ?>
 --EXPECT--
@@ -54,3 +56,21 @@ count("FOO"): int(2)
 count("FOO", 1): int(1)
 replace("FOO", "BAR"): string(15) "BAR bar BAR bar"
 replace(["FOO" => "BAR", "BAR" => "FOO"]): string(15) "FOO FOO FOO FOO"
+split(" "): array(4) {
+  [0]=>
+  string(3) "foo"
+  [1]=>
+  string(3) "bar"
+  [2]=>
+  string(3) "foo"
+  [3]=>
+  string(3) "bar"
+}
+split(" ", 2): array(3) {
+  [0]=>
+  string(3) "foo"
+  [1]=>
+  string(3) "bar"
+  [2]=>
+  string(7) "foo bar"
+}

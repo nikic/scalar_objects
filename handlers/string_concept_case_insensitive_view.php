@@ -73,6 +73,21 @@ class CaseInsensitiveView {
     }
 
     public function split($separator, $limit = PHP_INT_MAX) {
-        /* TODO */
+        $parts = [];
+        $sepLen = $separator->length();
+
+        $index = 0;
+        for ($i = 0; $i < $limit; ++$i) {
+            if (false === $nextIndex = $this->indexOf($separator, $index)) {
+                break;
+            }
+            
+            $parts[] = $this->str->slice($index, $nextIndex - $index);
+            $index = $nextIndex + $sepLen;
+        }
+
+        $parts[] = $this->str->slice($index);
+
+        return $parts;
     }
 }
