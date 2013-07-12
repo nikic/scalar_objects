@@ -5,118 +5,324 @@ Testing string handler methods
 --FILE--
 <?php
 
+error_reporting(E_ALL);
+
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/../handlers/string.php';
 
 register_primitive_type_handler('string', 'str\\Handler');
 
-$str = 'foobar';
+str('foobar');
 
-echo "Working on string \"$str\"\n\n";
+r('slice(1)');
+r('slice(1, 4)');
+r('slice(1, -1)');
+r('slice(-5, -1)');
+r('slice(6)');
+r('slice(0, -6)');
+r('slice(3, 0)');
+r('slice(3, -3)');
+r('slice(7)');
+r('slice(-7)');
+r('slice(0, -7)');
+r('slice(3, -4)');
+r('slice(0, 7)');
+r('slice(3, 4)');
 
-p('length()',          $str->length());
+sep();
+r('replaceSlice("raboo", 1)');
+r('replaceSlice("aboo", 1, 4)');
+r('replaceSlice("aboo", 1, -1)');
+r('replaceSlice("aboo", -5, -1)');
+r('replaceSlice("baz", 6)');
+r('replaceSlice("baz", 0, -6)');
+r('replaceSlice("baz", 3, 0)');
+r('replaceSlice("baz", 3, -3)');
+r('replaceSlice("", 1, 4)');
+r('replaceSlice("nop", 7)');
+r('replaceSlice("nop", -7)');
+r('replaceSlice("nop", 0, -7)');
+r('replaceSlice("nop", 3, -4)');
+r('replaceSlice("nop", 0, 7)');
+r('replaceSlice("nop", 3, 4)');
 
-p('indexOf("o")',      $str->indexOf("o"));
-p('lastIndexOf("o")',  $str->lastIndexOf("o"));
-p('contains("ooba")',  $str->contains("ooba"));
-p('contains("aboo")',  $str->contains("aboo"));
-p('startsWith("foo")', $str->startsWith("foo"));
-p('startsWith("bar")', $str->startsWith("bar"));
-p('endsWith("bar")',   $str->endsWith("bar"));
-p('endsWith("foo")',   $str->endsWith("foo"));
+str('abc def abc def abc');
 
-p('slice(1)',          $str->slice(1));
-p('slice(1, 3)',       $str->slice(1, 3));
-p('slice(1, -1)',      $str->slice(1, -1));
+r('indexOf("abc")');
+r('indexOf("cab")');
+r('indexOf("abc", 1)');
+r('indexOf("abc", 8)');
+r('indexOf("abc", -19)');
+r('indexOf("abc", -18)');
+r('indexOf("abc", -11)');
+r('indexOf("def", -3)');
+r('indexOf("")');
+r('indexOf("", 8)');
+r('indexOf("", -11)');
+r('indexOf("abc", -20)');
+r('indexOf("abc", 20)');
 
-p('replaceSlice("abc", 1)',     $str->replaceSlice("abc", 1));
-p('replaceSlice("abc", 1, 2)',  $str->replaceSlice("abc", 1, 2));
-p('replaceSlice("abc", 1, -1)', $str->replaceSlice("abc", 1, -1));
+sep();
+r('lastIndexOf("abc")');
+r('lastIndexOf("cab")');
+r('lastIndexOf("abc", 15)');
+r('lastIndexOf("abc", 8)');
+r('lastIndexOf("abc", -3)');
+r('lastIndexOf("abc", -4)');
+r('lastIndexOf("abc", -11)');
+r('lastIndexOf("def", 3)');
+r('lastIndexOf("")');
+r('lastIndexOf("", 8)');
+r('lastIndexOf("", -11)');
+r('lastIndexOf("abc", -20)');
+r('lastIndexOf("abc", 20)');
 
-p('repeat(3)',         $str->repeat(3));
-p('reverse()',         $str->reverse());
+sep();
+r('contains("abc")');
+r('contains("cab")');
+r('contains("")');
+r('startsWith("abc")');
+r('startsWith("cab")');
+r('startsWith("")');
+r('endsWith("abc")');
+r('endsWith("cab")');
+r('endsWith("")');
 
-p('chunk()',           $str->chunk());
-p('chunk(2)',          $str->chunk(2));
+sep();
+r('count("abc")');
+r('count("cab")');
+r('count("abc", 1)');
+r('count("abc", 8)');
+r('count("abc", 8, 5)');
+r('count("abc", 8, -3)');
+r('count("abc", -19)');
+r('count("abc", -18)');
+r('count("abc", -11)');
+r('count("abc", -11, 5)');
+r('count("abc", -11, -3)');
+r('count("def", -3)');
+r('count("")');
+r('count("", 8)');
+r('count("", -11)');
+r('count("nop", -20)');
+r('count("nop", 20)');
+r('count("nop", 0, -20)');
+r('count("nop", 10, -11)');
+r('count("nop", 0, 20)');
+r('count("nop", 10, 11)');
 
-p('padLeft(15)',         $str->padLeft(15));
-p('padLeft(15, "123")',  $str->padLeft(15, "123"));
-p('padRight(15)',        $str->padRight(15));
-p('padRight(15, "123")', $str->padRight(15, "123"));
+str('ooooooooooo');
 
-$str = "FoObAr";
+r('count("o")');
+r('count("oo")');
+r('count("ooo")');
+r('count("oooo")');
+r('count("ooooo")');
 
-echo "\nWorking on string \"$str\"\n\n";
+str('foobar');
 
-p('toLower()',         $str->toLower());
-p('toUpper()',         $str->toUpper());
+r('chunk()');
+r('chunk(2)');
+r('chunk(4)');
+r('chunk(0)');
+r('chunk(-1)');
 
-$str = "123,456,789";
+sep();
+r('repeat(3)');
+r('repeat(1)');
+r('repeat(0)');
+r('repeat(-1)');
 
-echo "\nWorking on string \"$str\"\n\n";
+str('');
 
-p('split(",")',        $str->split(","));
-p('split(",", 1)',     $str->split(",", 1));
-p('split(",", 2)',     $str->split(",", 2));
-p('split(",", -1)',    $str->split(",", -1));
+r('slice(0)');
+r('slice(0, 0)');
+r('replaceSlice("foo", 0)');
+r('replaceSlice("foo", 0, 0)');
+r('indexOf("")');
+r('indexOf("", 0)');
+r('lastIndexOf("")');
+r('lastIndexOf("", 0)');
+r('contains("")');
+r('startsWith("")');
+r('endsWith("")');
+r('count("")');
+r('count("", 0)');
+r('count("", 0, 0)');
+r('repeat(3)');
+r('chunk(3)');
 
-$str = "some string with some words";
+str('foobar');
 
-echo "\nWorking on string \"$str\"\n\n";
+r('length()');
 
-p('replace("some", "SOME")', $str->replace("some", "SOME"));
-p(
-    'replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])',
-    $str->replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])
-);
-p('replace("some", "SOME", 1)', $str->replace("some", "SOME", 1));
-p(
-	'replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3)',
-	$str->replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3)
-);
+r('reverse()');
 
-p('count("string")',     $str->count("string"));
-p('count("some")',       $str->count("some"));
-p('count("some", 5)',    $str->count("some", 5));
-p('count("some", 5, 5)', $str->count("some", 5, 5));
+r('padLeft(15)');
+r('padLeft(15, "123")');
+r('padRight(15)');
+r('padRight(15, "123")');
 
-$str = "     hello     world     ";
+str('FoObAr');
 
-echo "\nWorking on string \"$str\"\n\n";
+r('toLower()');
+r('toUpper()');
 
-p('trim()',      $str->trim());
-p('trimLeft()',  $str->trimLeft());
-p('trimRight()', $str->trimRight());
+str('123,456,789');
 
-$str = "12345hello12345world12345";
+r('split(",")');
+r('split(",", 1)');
+r('split(",", 2)');
+r('split(",", -1)');
 
-echo "\nWorking on string \"$str\"\n\n";
+str('some string with some words');
 
-p('trim("54321")',      $str->trim("54321"));
-p('trimLeft("54321")',  $str->trimLeft("54321"));
-p('trimRight("54321")', $str->trimRight("54321"));
+r('replace("some", "SOME")');
+r('replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])');
+r('replace("some", "SOME", 1)');
+r('replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3)');
+
+str('     hello     world     ');
+
+r('trim()');
+r('trimLeft()');
+r('trimRight()');
+
+str('12345hello12345world12345');
+
+r('trim("54321")');
+r('trimLeft("54321")');
+r('trimRight("54321")');
 
 ?>
 --EXPECTF--
 Working on string "foobar"
 
-length(): int(6)
-indexOf("o"): int(1)
-lastIndexOf("o"): int(2)
-contains("ooba"): bool(true)
-contains("aboo"): bool(false)
-startsWith("foo"): bool(true)
-startsWith("bar"): bool(false)
-endsWith("bar"): bool(true)
-endsWith("foo"): bool(false)
 slice(1): string(5) "oobar"
-slice(1, 3): string(3) "oob"
+slice(1, 4): string(4) "ooba"
 slice(1, -1): string(4) "ooba"
-replaceSlice("abc", 1): string(4) "fabc"
-replaceSlice("abc", 1, 2): string(7) "fabcbar"
-replaceSlice("abc", 1, -1): string(5) "fabcr"
-repeat(3): string(18) "foobarfoobarfoobar"
-reverse(): string(6) "raboof"
+slice(-5, -1): string(4) "ooba"
+slice(6): string(0) ""
+slice(0, -6): string(0) ""
+slice(3, 0): string(0) ""
+slice(3, -3): string(0) ""
+slice(7):
+InvalidArgumentException: Offset must be in range [-len, len]
+slice(-7):
+InvalidArgumentException: Offset must be in range [-len, len]
+slice(0, -7):
+InvalidArgumentException: Length too small
+slice(3, -4):
+InvalidArgumentException: Length too small
+slice(0, 7):
+InvalidArgumentException: Length too large
+slice(3, 4):
+InvalidArgumentException: Length too large
+
+replaceSlice("raboo", 1): string(6) "fraboo"
+replaceSlice("aboo", 1, 4): string(6) "faboor"
+replaceSlice("aboo", 1, -1): string(6) "faboor"
+replaceSlice("aboo", -5, -1): string(6) "faboor"
+replaceSlice("baz", 6): string(9) "foobarbaz"
+replaceSlice("baz", 0, -6): string(9) "bazfoobar"
+replaceSlice("baz", 3, 0): string(9) "foobazbar"
+replaceSlice("baz", 3, -3): string(9) "foobazbar"
+replaceSlice("", 1, 4): string(2) "fr"
+replaceSlice("nop", 7):
+InvalidArgumentException: Offset must be in range [-len, len]
+replaceSlice("nop", -7):
+InvalidArgumentException: Offset must be in range [-len, len]
+replaceSlice("nop", 0, -7):
+InvalidArgumentException: Length too small
+replaceSlice("nop", 3, -4):
+InvalidArgumentException: Length too small
+replaceSlice("nop", 0, 7):
+InvalidArgumentException: Length too large
+replaceSlice("nop", 3, 4):
+InvalidArgumentException: Length too large
+
+Working on string "abc def abc def abc"
+
+indexOf("abc"): int(0)
+indexOf("cab"): bool(false)
+indexOf("abc", 1): int(8)
+indexOf("abc", 8): int(8)
+indexOf("abc", -19): int(0)
+indexOf("abc", -18): int(8)
+indexOf("abc", -11): int(8)
+indexOf("def", -3): bool(false)
+indexOf(""): int(0)
+indexOf("", 8): int(8)
+indexOf("", -11): int(8)
+indexOf("abc", -20):
+InvalidArgumentException: Offset must be in range [-len, len]
+indexOf("abc", 20):
+InvalidArgumentException: Offset must be in range [-len, len]
+
+lastIndexOf("abc"): int(16)
+lastIndexOf("cab"): bool(false)
+lastIndexOf("abc", 15): int(8)
+lastIndexOf("abc", 8): int(8)
+lastIndexOf("abc", -3): int(16)
+lastIndexOf("abc", -4): int(8)
+lastIndexOf("abc", -11): int(8)
+lastIndexOf("def", 3): bool(false)
+lastIndexOf(""): int(19)
+lastIndexOf("", 8): int(8)
+lastIndexOf("", -11): int(8)
+lastIndexOf("abc", -20):
+InvalidArgumentException: Offset must be in range [-len, len]
+lastIndexOf("abc", 20):
+InvalidArgumentException: Offset must be in range [-len, len]
+
+contains("abc"): bool(true)
+contains("cab"): bool(false)
+contains(""): bool(true)
+startsWith("abc"): bool(true)
+startsWith("cab"): bool(false)
+startsWith(""): bool(true)
+endsWith("abc"): bool(true)
+endsWith("cab"): bool(false)
+endsWith(""): bool(true)
+
+count("abc"): int(3)
+count("cab"): int(0)
+count("abc", 1): int(2)
+count("abc", 8): int(2)
+count("abc", 8, 5): int(1)
+count("abc", 8, -3): int(1)
+count("abc", -19): int(3)
+count("abc", -18): int(2)
+count("abc", -11): int(2)
+count("abc", -11, 5): int(1)
+count("abc", -11, -3): int(1)
+count("def", -3): int(0)
+count(""): int(20)
+count("", 8): int(12)
+count("", -11): int(12)
+count("nop", -20):
+InvalidArgumentException: Offset must be in range [-len, len]
+count("nop", 20):
+InvalidArgumentException: Offset must be in range [-len, len]
+count("nop", 0, -20):
+InvalidArgumentException: Length too small
+count("nop", 10, -11):
+InvalidArgumentException: Length too small
+count("nop", 0, 20):
+InvalidArgumentException: Length too large
+count("nop", 10, 11):
+InvalidArgumentException: Length too large
+
+Working on string "ooooooooooo"
+
+count("o"): int(11)
+count("oo"): int(5)
+count("ooo"): int(3)
+count("oooo"): int(2)
+count("ooooo"): int(2)
+
+Working on string "foobar"
+
 chunk(): array(6) {
   [0]=>
   string(1) "f"
@@ -139,6 +345,49 @@ chunk(2): array(3) {
   [2]=>
   string(2) "ar"
 }
+chunk(4): array(2) {
+  [0]=>
+  string(4) "foob"
+  [1]=>
+  string(2) "ar"
+}
+chunk(0):
+InvalidArgumentException: Chunk length has to be positive
+chunk(-1):
+InvalidArgumentException: Chunk length has to be positive
+
+repeat(3): string(18) "foobarfoobarfoobar"
+repeat(1): string(6) "foobar"
+repeat(0): string(0) ""
+repeat(-1):
+InvalidArgumentException: Number of repetitions can not be negative
+
+Working on string ""
+
+slice(0): string(0) ""
+slice(0, 0): string(0) ""
+replaceSlice("foo", 0): string(3) "foo"
+replaceSlice("foo", 0, 0): string(3) "foo"
+indexOf(""): int(0)
+indexOf("", 0): int(0)
+lastIndexOf(""): int(0)
+lastIndexOf("", 0): int(0)
+contains(""): bool(true)
+startsWith(""): bool(true)
+endsWith(""): bool(true)
+count(""): int(1)
+count("", 0): int(1)
+count("", 0, 0): int(1)
+repeat(3): string(0) ""
+chunk(3): array(1) {
+  [0]=>
+  string(0) ""
+}
+
+Working on string "foobar"
+
+length(): int(6)
+reverse(): string(6) "raboof"
 padLeft(15): string(15) "         foobar"
 padLeft(15, "123"): string(15) "123123123foobar"
 padRight(15): string(15) "foobar         "
@@ -184,10 +433,6 @@ string(27) "SOME STRING with SOME WORDS"
 replace("some", "SOME", 1): string(27) "SOME string with some words"
 replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3):
 string(27) "SOME STRING with SOME words"
-count("string"): int(1)
-count("some"): int(2)
-count("some", 5): int(1)
-count("some", 5, 5): int(0)
 
 Working on string "     hello     world     "
 

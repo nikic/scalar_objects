@@ -73,7 +73,7 @@ The extension comes with a `run-tests.php` file to run the tests. (To see
 examples of the implemented APIs you should also look in the tests.) The
 script is run as follows:
 
-    php run-tests.php -p php
+    php run-tests.php -q -p php
 
 Where `php` is the path to your PHP executable.
 

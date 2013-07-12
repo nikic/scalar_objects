@@ -7,12 +7,56 @@ class Handler {
         return strlen($this);
     }
 
+    /*
+     * Slicing methods
+     */
+
+    public function slice($offset, $length = null) {
+        $offset = $this->prepareOffset($offset);
+        $length = $this->prepareLength($offset, $length);
+
+        if (0 === $length) {
+            return '';
+        }
+
+        return substr($this, $offset, $length);
+    }
+
+    public function replaceSlice($replacement, $offset, $length = null) {
+        $offset = $this->prepareOffset($offset);
+        $length = $this->prepareLength($offset, $length);
+
+        return substr_replace($this, $replacement, $offset, $length);
+    }
+
+    /*
+     * Search methods
+     */
+
     public function indexOf($string, $offset = 0) {
+        $offset = $this->prepareOffset($offset);
+
+        if ('' === $string) {
+            return $offset;
+        }
+
         return strpos($this, $string, $offset);
     }
 
-    public function lastIndexOf($string, $offset = 0) {
-        return strrpos($this, $string, $offset);
+    public function lastIndexOf($string, $offset = null) {
+        if (null === $offset) {
+            $offset = $this->length();
+        } else {
+            $offset = $this->prepareOffset($offset);
+        }
+
+        if ('' === $string) {
+            return $offset;
+        }
+
+        /* Converts $offset to a negative offset as strrpos has a different
+         * behavior for positive offsets. */
+        return strrpos($this, $string, $offset - $this->length());
     }
 
     public function contains($string) {
@@ -28,27 +72,14 @@ class Handler {
     }
 
     public function count($string, $offset = 0, $length = null) {
-        if (null === $length) {
-            return substr_count($this, $string, $offset);
-        } else {
-            return substr_count($this, $string, $offset, $length);
-        }
-    }
+        $offset = $this->prepareOffset($offset);
+        $length = $this->prepareLength($offset, $length);
 
-    public function slice($offset, $length = null) {
-        if (null === $length) {
-            return substr($this, $offset);
-        } else {
-            return substr($this, $offset, $length);
+        if ('' === $string) {
+            return $length + 1;
         }
-    }
 
-    public function replaceSlice($replacement, $offset, $length = null) {
-        if (null === $length) {
-            return substr_replace($this, $replacement, $offset);
-        } else {
-            return substr_replace($this, $replacement, $offset, $length);
-        }
+        return substr_count($this, $string, $offset, $length);
     }
 
     /* This function has two prototypes:
@@ -65,7 +96,7 @@ class Handler {
             return str_replace($from, $to, $this);
         }
 
-        $limit = $this->verifyLimit($limit);
+        $this->verifyPositive($limit, 'Limit');
         return $this->replaceWithLimit($this, $from, $to, $limit);
     }
 
@@ -74,10 +105,12 @@ class Handler {
     }
 
     public function chunk($chunkLength = 1) {
+        $this->verifyPositive($chunkLength, 'Chunk length');
         return str_split($this, $chunkLength);
     }
 
     public function repeat($times) {
+        $this->verifyNotNegative($times, 'Number of repetitions');
         return str_repeat($this, $times);
     }
 
@@ -113,12 +146,49 @@ class Handler {
         return str_pad($this, $length, $padString, STR_PAD_RIGHT);
     }
 
-    protected function verifyLimit($limit) {
-        $limit = (int) $limit;
-        if ($limit <= 0) {
-            throw new InvalidArgumentException('Limit has to be positive');
+    protected function prepareOffset($offset) {
+        $len = $this->length();
+        if ($offset < -$len || $offset > $len) {
+            throw new \InvalidArgumentException('Offset must be in range [-len, len]');
         }
-        return $limit;
+
+        if ($offset < 0) {
+            $offset += $len;
+        }
+
+        return $offset;
+    }
+
+    protected function prepareLength($offset, $length) {
+        if (null === $length) {
+            return $this->length() - $offset;
+        }
+        
+        if ($length < 0) {
+            $length += $this->length() - $offset;
+
+            if ($length < 0) {
+                throw new \InvalidArgumentException('Length too small');
+            }
+        } else {
+            if ($offset + $length > $this->length()) {
+                throw new \InvalidArgumentException('Length too large');
+            }
+        }
+
+        return $length;
+    }
+
+    protected function verifyPositive($value, $name) {
+        if ($value <= 0) {
+            throw new \InvalidArgumentException("$name has to be positive");
+        }
+    }
+
+    protected function verifyNotNegative($value, $name) {
+        if ($value < 0) {
+            throw new \InvalidArgumentException("$name can not be negative");
+        }
     }
 
     protected function replacePairs($replacements, $limit) {
@@ -126,7 +196,7 @@ class Handler {
             return strtr($this, $replacements);
         }
 
-        $limit = $this->verifyLimit($limit);
+        $this->verifyPositive($limit, 'Limit');
         $str = $this;
         foreach ($replacements as $from => $to) {
             $str = $this->replaceWithLimit($str, $from, $to, $limit);
