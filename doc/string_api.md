@@ -60,6 +60,12 @@ API overview
         bool contains(string $string)
         bool startsWith(string $string)
         bool endsWith(string $string)
+        int count(string $string, int $offset = 0, int $length = null)
+
+        /* Unclassified */
+
+        string[] chunk(int $chunkLength = 1)
+        string repeat(int $times)
 	}
 
 Individual methods
@@ -94,6 +100,8 @@ Notes:
    return the empty string. The old behavior seems like a bug.
  * An alternative name for this method would be `subString()`. I chose `slice()` because it works
    analogeous to the array `slice()` method.
+
+---
 
     string replaceSlice(string $replacement, int $offset, $length = null)
 
@@ -150,6 +158,8 @@ Notes:
  * Other names for this method are `index` and `find`. I think `indexOf` describes the function
    best.
 
+---
+
 	int|false lastIndexOf(string $string, int $offset = null)
 
 If `$offset == null` let `$realOffset = $this->length()`. Otherwise let
@@ -175,6 +185,8 @@ Notes:
    `$pos <= $offset` here is mainly because this is what `strrpos` was using.
  * Apart from this, the notes from `indexOf()` apply.
 
+---
+
 	bool contains(string $string)
 
 Return `true` if `$string` occurs in the main string, `false` otherwise.
@@ -192,6 +204,8 @@ Notes:
 
  * The `contains`, `startsWith` and `endsWith` methods are rather simple, but occur often in
    practical usage and are as such included.
+
+---
 
     int count(string $string, int $offset = 0, int $length = null)
 
@@ -222,6 +236,8 @@ TODO:
  * Default WS split?
  * General option for multichar split?
 
+---
+
     string[] chunk(int $chunkLength = 1)
 
 If `$chunkLength <= 0` throw an `InvalidArgumentException`.
@@ -236,6 +252,8 @@ Notes:
  * It is perfectly valid to have a chunk length that is longer than the main string.
  * The name `chunk()` was chosen, because `split()` seems more appropriate for the `explode`
    equivalent. Furthermore the corresponding array functionality is also named `chunk()`.
+
+---
 
     string repeat(int $times)
 
