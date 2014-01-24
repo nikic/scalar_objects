@@ -25,6 +25,7 @@
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/info.h"
+#include "zend_closures.h"
 #include "php_scalar_objects.h"
 
 ZEND_DECLARE_MODULE_GLOBALS(scalar_objects)
@@ -216,6 +217,20 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	return ZEND_USER_OPCODE_CONTINUE;
 }
 
+static int scalar_objects_declare_lambda_function_handler(ZEND_OPCODE_HANDLER_ARGS)
+{
+	zend_op *opline = execute_data->opline;
+	zval *this_ptr = (EG(This) && Z_TYPE_P(EG(This)) == IS_OBJECT) ? EG(This) : NULL;
+
+	zend_function *fn;
+	zend_hash_quick_find(EG(function_table), Z_STRVAL_P(opline->op1.zv), Z_STRLEN_P(opline->op1.zv), Z_HASH_P(opline->op1.zv), (void *) &fn);
+
+	zend_create_closure(&SO_EX_T(opline->result.var).tmp_var, fn, EG(scope), this_ptr TSRMLS_CC);
+
+	execute_data->opline++;
+	return ZEND_USER_OPCODE_CONTINUE;
+}
+
 static int get_type_from_string(const char *str) {
 	/* Not all of these types will make sense in practice, but for now
 	 * we support all of them. */
@@ -292,6 +307,7 @@ zend_module_entry scalar_objects_module_entry = {
 
 ZEND_MINIT_FUNCTION(scalar_objects) {
 	zend_set_user_opcode_handler(ZEND_INIT_METHOD_CALL, scalar_objects_method_call_handler);
+	zend_set_user_opcode_handler(ZEND_DECLARE_LAMBDA_FUNCTION, scalar_objects_declare_lambda_function_handler);
 
 	return SUCCESS;
 }
