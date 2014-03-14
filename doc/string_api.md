@@ -140,9 +140,6 @@ If `$realOffset < 0` or `$realOffset > $this->length()` throw `InvalidArgumentEx
 
 Return the index `$pos` of the first occurance of `$string` in the main string, such that
 `$pos >= $realOffset`. If no such occurance exists return `false`.
-    throws InvalidArgumentException
-        if $offset > $this->length()
-        if $offset < -$this->length()
 
 Notes:
 
