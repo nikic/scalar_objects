@@ -1,7 +1,12 @@
 --TEST--
 Test modification of array inside handler
 --SKIPIF--
-<?php if (!extension_loaded('scalar_objects')) echo 'skip'; ?>
+<?php
+if (!extension_loaded('scalar_objects')) echo 'skip';
+
+/* Not supported for builds against PHP 5.6 or higher */
+if (version_compare(PHP_VERSION, '5.6.0-dev', '>=')) echo 'skip';
+?>
 --FILE--
 <?php
 
