@@ -48,6 +48,10 @@ API overview
 ------------
 
     string {
+        /* Information retrieval methods */
+
+        int length()
+
         /* Slicing methods */
 
         string slice(int $offset, int $length = null)
@@ -74,13 +78,20 @@ Individual methods
 Note on terminology: The string that the method will be called on will be referred to as the
 "main string" in the following to distinguish it from any strings passed to the methods.
 
+### Information retrieval methods
+
+    int length()
+
+Return the length in bytes of the main string. The length does not include the terminating
+NUL byte.
+
 ### Slicing methods
 
     string slice(int $offset, int $length = null)
 
 Let `$realOffset = $offset >= 0 ? $offset : $offset + $this->length()`.
 
-If `$length == null` let `$realLength = $this->length() - $offset`. Otherwise let
+If `$length === null` let `$realLength = $this->length() - $offset`. Otherwise let
 `$realLength = $length >= 0 ? $length : $this->length() + $length - $offset`.
 
 If `$realOffset < 0` or `$realLength < 0` or `$realOffset + $realLength > $this->length()` throw
@@ -107,7 +118,7 @@ Notes:
 
 Let `$realOffset = $offset >= 0 ? $offset : $offset + $this->length()`.
 
-If `$length == null` let `$realLength = $this->length() - $offset`. Otherwise let
+If `$length === null` let `$realLength = $this->length() - $offset`. Otherwise let
 `$realLength = $length >= 0 ? $length : $this->length() + $length - $offset`.
 
 If `$realOffset < 0` or `$realLength < 0` or `$realOffset + $realLength > $this->length()` throw

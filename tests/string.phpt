@@ -14,7 +14,13 @@ register_primitive_type_handler('string', 'str\\Handler');
 
 str('foobar');
 
+r('length()');
+
+sep();
 r('slice(1)');
+r('slice(1, null)');
+r('slice(-1)');
+r('slice(-1, null)');
 r('slice(1, 4)');
 r('slice(1, -1)');
 r('slice(-5, -1)');
@@ -31,6 +37,9 @@ r('slice(3, 4)');
 
 sep();
 r('replaceSlice("raboo", 1)');
+r('replaceSlice("raboo", 1, null)');
+r('replaceSlice("R", -1)');
+r('replaceSlice("R", -1, null)');
 r('replaceSlice("aboo", 1, 4)');
 r('replaceSlice("aboo", 1, -1)');
 r('replaceSlice("aboo", -5, -1)');
@@ -135,6 +144,7 @@ r('repeat(-1)');
 
 str('');
 
+r('length()');
 r('slice(0)');
 r('slice(0, 0)');
 r('replaceSlice("foo", 0)');
@@ -198,7 +208,12 @@ r('trimRight("54321")');
 --EXPECTF--
 Working on string "foobar"
 
+length(): int(6)
+
 slice(1): string(5) "oobar"
+slice(1, null): string(5) "oobar"
+slice(-1): string(1) "r"
+slice(-1, null): string(1) "r"
 slice(1, 4): string(4) "ooba"
 slice(1, -1): string(4) "ooba"
 slice(-5, -1): string(4) "ooba"
@@ -220,6 +235,9 @@ slice(3, 4):
 InvalidArgumentException: Length too large
 
 replaceSlice("raboo", 1): string(6) "fraboo"
+replaceSlice("raboo", 1, null): string(6) "fraboo"
+replaceSlice("R", -1): string(6) "foobaR"
+replaceSlice("R", -1, null): string(6) "foobaR"
 replaceSlice("aboo", 1, 4): string(6) "faboor"
 replaceSlice("aboo", 1, -1): string(6) "faboor"
 replaceSlice("aboo", -5, -1): string(6) "faboor"
@@ -364,6 +382,7 @@ InvalidArgumentException: Number of repetitions can not be negative
 
 Working on string ""
 
+length(): int(0)
 slice(0): string(0) ""
 slice(0, 0): string(0) ""
 replaceSlice("foo", 0): string(3) "foo"
