@@ -74,6 +74,8 @@ r('indexOf("abc", 20)');
 sep();
 r('lastIndexOf("abc")');
 r('lastIndexOf("cab")');
+r('lastIndexOf("abc", null)');
+r('lastIndexOf("cab", null)');
 r('lastIndexOf("abc", 15)');
 r('lastIndexOf("abc", 8)');
 r('lastIndexOf("abc", -3)');
@@ -102,6 +104,8 @@ r('count("abc")');
 r('count("cab")');
 r('count("abc", 1)');
 r('count("abc", 8)');
+r('count("abc", 1, null)');
+r('count("abc", 8, null)');
 r('count("abc", 8, 5)');
 r('count("abc", 8, -3)');
 r('count("abc", -19)');
@@ -279,6 +283,8 @@ InvalidArgumentException: Offset must be in range [-len, len]
 
 lastIndexOf("abc"): int(16)
 lastIndexOf("cab"): bool(false)
+lastIndexOf("abc", null): int(16)
+lastIndexOf("cab", null): bool(false)
 lastIndexOf("abc", 15): int(8)
 lastIndexOf("abc", 8): int(8)
 lastIndexOf("abc", -3): int(16)
@@ -307,6 +313,8 @@ count("abc"): int(3)
 count("cab"): int(0)
 count("abc", 1): int(2)
 count("abc", 8): int(2)
+count("abc", 1, null): int(2)
+count("abc", 8, null): int(2)
 count("abc", 8, 5): int(1)
 count("abc", 8, -3): int(1)
 count("abc", -19): int(3)

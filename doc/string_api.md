@@ -70,7 +70,40 @@ API overview
 
         string[] chunk(int $chunkLength = 1)
         string repeat(int $times)
-	}
+    }
+
+Shared functionality
+--------------------
+
+The following defines a number of functions providing functionality that is shared between several
+of the methods. These functions are **NOT** part of the public API. An implementation is **NOT**
+required to make use of them, they exist merely to remove repetition from the specification.
+
+    int _prepareOffset(int $offset)
+
+Let `$realOffset = $offset >= 0 ? $offset : $offset + $this->length()`.
+
+If `$offset < 0` or `$offset > $this->length()` throw `InvalidArgumentException`.
+
+Return `$realOffset`.
+
+> Notes:
+>
+ * The error condition for this function may be reformulated as: Throws `InvalidArgumentException`
+   if `$offset > $this->length()` or `$offset < -$this->length()`.
+
+---
+
+    int _prepareLength(int $realOffset, int|null $length)
+
+If `$length === null` return ` $this->length() - $realOffset`.
+
+Let `$realLength = $length >= 0 ? $length : $this->length() + $length - $realOffset`.
+
+If `$realLength < 0` or `$realOffset + $realLength > $this->length()` throw
+`InvalidArgumentException`.
+
+Return `$realLength`.
 
 Individual methods
 ------------------
@@ -89,18 +122,13 @@ NUL byte.
 
     string slice(int $offset, int $length = null)
 
-Let `$realOffset = $offset >= 0 ? $offset : $offset + $this->length()`.
-
-If `$length === null` let `$realLength = $this->length() - $offset`. Otherwise let
-`$realLength = $length >= 0 ? $length : $this->length() + $length - $offset`.
-
-If `$realOffset < 0` or `$realLength < 0` or `$realOffset + $realLength > $this->length()` throw
-`InvalidArgumentException`.
+Let `$realOffset = _prepareOffset($offset)`
+and `$realLength = _prepareLength($realOffset, $length)`.
 
 Return the substring starting at `$realOffset` and having length `$realLength`.
 
-Notes:
-
+> Notes:
+>
  * This method corresponds to `substr`.
  * The method is more strict regarding the `$offset` and `$length` parameters. If you called
    `strpos` with an (effective) offset smaller than 0, then 0 was assumed. If `$offset + $length`
@@ -116,19 +144,14 @@ Notes:
 
     string replaceSlice(string $replacement, int $offset, $length = null)
 
-Let `$realOffset = $offset >= 0 ? $offset : $offset + $this->length()`.
+Let `$realOffset = _prepareOffset($offset)`
+and `$realLength = _prepareLength($realOffset, $length)`.
 
-If `$length === null` let `$realLength = $this->length() - $offset`. Otherwise let
-`$realLength = $length >= 0 ? $length : $this->length() + $length - $offset`.
-
-If `$realOffset < 0` or `$realLength < 0` or `$realOffset + $realLength > $this->length()` throw
-`InvalidArgumentException`.
-
-Return a new string, which is the main string with the substring starting at `$startOffset` and
+Return a new string, which is the main string with the substring starting at `$realOffset` and
 having length `$realLength` replaced by `$replacement`.
 
-Notes:
-
+> Notes:
+>
  * This method corresponds to `substr_replace`.
  * I considered also having a method `deleteSlice()`, but this seems to be a rather rare case, so
    `replaceSlice("", ...)` should be sufficient.
@@ -145,21 +168,18 @@ In particular, note that the empty string `""` occurs at every index of the main
 
 	int|false indexOf(string $string, int $offset = 0)
 
-Let `$realOffset = $offset >= 0 ? $offset : $offset + $this->length()`.
-
-If `$realOffset < 0` or `$realOffset > $this->length()` throw `InvalidArgumentException`.
+Let `$realOffset = _prepareOffset($offset)`.
 
 Return the index `$pos` of the first occurance of `$string` in the main string, such that
 `$pos >= $realOffset`. If no such occurance exists return `false`.
 
-Notes:
-
- * This function corresponds to `strpos`.
- * The error condition for this function may be reformulated as: Throws InvalidArgumentException
-   if `$offset > $this->length()` or `$offset < -$this->length()`.
+> Notes:
+>
+ * This method corresponds to `strpos`.
  * Many languages choose to return `-1` in case the string was not found. In absence of type
    restrictions, I see no pertinent reason for doing so and stick with the usual `false` return
-   value.
+   value. Further the `indexOf()` method for arrays can not return `-1` as it is a valid array
+   key. Returning `false` here ensures both methods can stay consistent.
  * This function could accept a length additionally to the offset. It seems like most languages
    leave this off though. Probably because the only purpose of the offset here is to allow
    looping through all occurances of a string.
@@ -170,16 +190,14 @@ Notes:
 
 	int|false lastIndexOf(string $string, int $offset = null)
 
-If `$offset == null` let `$realOffset = $this->length()`. Otherwise let
-`$realOffset = $offset >= 0 ? $offset : $offset + $this->length()`.
-
-If `$realOffset < 0` or `$realOffset > $this->length()` throw `InvalidArgumentException`.
+If `$offset === null` let `$realOffset = $this->length()`. Otherwise
+let `$realOffset = _prepareOffset($offset)`.
 
 Return the index `$pos` of the last occurance of `$string` in the main string, such that
 `$pos <= $realOffset`. If no such occurance exists return `false`.
 
-Notes:
-
+> Notes:
+>
  * This function corresponds to `strrpos`.
  * The meaning of the `$offset` parameter differs from the `strrpos` function. It now always
    specified the *last* valid starting position for the occurance. With `strrpos` it specified the
@@ -208,27 +226,23 @@ Return `true` if `$string` occurs at position `0` in the main string, `false` ot
 Return `true` if `$string` occurs at position `$this->length() - $string->length()` in the main
 string, `false` otherwise.
 
-Notes:
-
+> Notes:
+>
  * The `contains`, `startsWith` and `endsWith` methods are rather simple, but occur often in
    practical usage and are as such included.
+ * Every string contains, starts with and ends with the empty string.
 
 ---
 
     int count(string $string, int $offset = 0, int $length = null)
 
-Let `$realOffset = $offset >= 0 ? $offset : $offset + $this->length()`.
-
-If `$length == null` let `$realLength = $this->length() - $offset`. Otherwise let
-`$realLength = $length >= 0 ? $length : $this->length() + $length - $offset`.
-
-If `$realOffset < 0` or `$realLength < 0` or `$realOffset + $realLength > $this->length()` throw
-`InvalidArgumentException`.
+Let `$realOffset = _prepareOffset($offset)`
+and `$realLength = _prepareLength($realOffset, $length)`.
 
 Return the number of non-overlapping occurances of `$string` in the main string.
 
-Notes:
-
+> Notes:
+>
  * This function corresponds to `substr_count`.
  * The function allows the empty string as the search string, just like it is allowed in
    `indexOf()` etc. Counting with the empty string will always return `$realLength + 1` occurances.
@@ -254,8 +268,8 @@ Split the main string into chunks of length `$chunkLength` and return them as an
 length of the main string is not divisible by the chunk length, then the last chunk has length
 `$this->length() % $chunkLength`.
 
-Notes:
-
+> Notes:
+>
  * This function corresponds to `str_split`.
  * It is perfectly valid to have a chunk length that is longer than the main string.
  * The name `chunk()` was chosen, because `split()` seems more appropriate for the `explode`
@@ -269,8 +283,8 @@ If `$times < 0` throw an `InvalidArgumentException`.
 
 Return the main string repeated `$times` times. If `$times` is zero, return the empty string.
 
-Notes:
-
+> Notes:
+>
  * This function corresponds to `str_repeat`.
 
   [string_funcs]: http://php.net/manual/en/ref.strings.php
