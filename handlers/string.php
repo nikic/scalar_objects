@@ -89,15 +89,29 @@ class Handler {
      */
     public function replace($from, $to = null, $limit = null) {
         if (is_array($from)) {
-            return $this->replacePairs($from, $to);
-        }
+            $replacements = $from;
+            $limit = $to;
 
-        if (null === $limit) {
-            return str_replace($from, $to, $this);
-        }
+            $this->verifyNotContainsEmptyString(
+                array_keys($replacements), 'Replacement array keys'
+            );
 
-        $this->verifyPositive($limit, 'Limit');
-        return $this->replaceWithLimit($this, $from, $to, $limit);
+            if (null === $limit) {
+                return strtr($this, $from);
+            } else {
+                $this->verifyPositive($limit, 'Limit');
+                return $this->replaceWithLimit($this, $replacements, $limit);
+            }
+        } else {
+            $this->verifyNotEmptyString($from, 'From string');
+
+            if (null === $limit) {
+                return str_replace($from, $to, $this);
+            } else {
+                $this->verifyPositive($limit, 'Limit');
+                return $this->replaceWithLimit($this, [$from => $to], $limit);
+            }
+        }
     }
 
     public function split($separator, $limit = PHP_INT_MAX) {
@@ -191,35 +205,85 @@ class Handler {
         }
     }
 
-    protected function replacePairs($replacements, $limit) {
-        if (null === $limit) {
-            return strtr($this, $replacements);
+    protected function verifyNotEmptyString($value, $name) {
+        if ((string) $value === '') {
+            throw new \InvalidArgumentException("$name can not be an empty string");
         }
-
-        $this->verifyPositive($limit, 'Limit');
-        $str = $this;
-        foreach ($replacements as $from => $to) {
-            $str = $this->replaceWithLimit($str, $from, $to, $limit);
-            if (0 === $limit) {
-                break;
-            }
-        }
-        return $str;
     }
 
-    protected function replaceWithLimit($str, $from, $to, &$limit) {
-        $lenDiff = $to->length() - $from->length();
-        $index = 0;
+    protected function verifyNotContainsEmptyString(array $array, $name) {
+        foreach ($array as $value) {
+            if ((string) $value === '') {
+                throw new \InvalidArgumentException("$name can not contain an empty string");
+            }
+        }
+    }
 
-        while (false !== $index = $str->indexOf($from, $index)) {
-            $str = $str->replaceSlice($to, $index, $to->length()); 
-            $index += $lenDiff;
+    /* This effectively implements strtr with a limit */
+    protected function replaceWithLimit($str, array $replacements, $limit) {
+        $this->sortKeysByStringLength($replacements);
+        $offsets = $this->computeInitialOffsets($str, $replacements);
+        while (!empty($offsets)) {
+            list($offset, $from) = $this->getSmallestOffset($offsets);
+
+            $to = $replacements[$from];
+            $fromLength = $from->length();
+            $toLength = $to->length();
+
+            $str = $str->replaceSlice($to, $offset, $fromLength);
 
             if (0 === --$limit) {
                 break;
             }
+
+            $oldEndOffset = $offset + $fromLength;
+            $newEndOffset = $offset + $toLength;
+            $this->updateOffsets($str, $offsets, $oldEndOffset, $newEndOffset);
         }
 
         return $str;
+    }
+
+    protected function sortKeysByStringLength(array &$array) {
+        uksort($array, function($str1, $str2) {
+            return $str2->length() - $str1->length();
+        });
+    }
+
+    protected function computeInitialOffsets($str, array $replacements) {
+        $offsets = [];
+        foreach ($replacements as $from => $_) {
+            $offset = $str->indexOf($from);
+            if (false !== $offset) {
+                $offsets[$from] = $offset;
+            }
+        }
+        return $offsets;
+    }
+
+    protected function getSmallestOffset(array $offsets) {
+        $minOffset = null;
+        $minFrom = null;
+        foreach ($offsets as $from => $offset) {
+            if ($minOffset === null || $offset < $minOffset) {
+                $minOffset = $offset;
+                $minFrom = $from;
+            } 
+        }
+        return [$minOffset, $minFrom];
+    }
+
+    protected function updateOffsets($str, array &$offsets, $oldEndOffset, $newEndOffset) {
+        foreach ($offsets as $from => &$offset) {
+            if ($offset >= $oldEndOffset) {
+                $offset += $newEndOffset - $oldEndOffset;
+                continue;
+            }
+
+            $offset = $str->indexOf($from, $newEndOffset);
+            if (false === $offset) {
+                unset($offsets[$from]);
+            }
+        }
     }
 }

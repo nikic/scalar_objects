@@ -250,6 +250,58 @@ Return the number of non-overlapping occurances of `$string` in the main string.
 
 ### Unclassified
 
+    string replace(array(string $from => string $to) $replacements, int $limit = PHP_INT_MAX)
+
+In the following "from-strings" refers to the keys of the `$replacements` array.
+
+If one of the from-strings is identical to `""` throw an `InvalidArgumentException`.
+
+Let `$pos = 0` and `$num = 0`.
+
+`Loop`: Find the first occurance `$p` of one of the from-strings with `$p >= $pos`. If there are
+no such occurances, go to `Done`. If more than one from-string occurs at one position, give
+precedence to the longest string. Replace the occurance of the from-string `$from` at this position
+with the corresponding to-string `$to = $replacements[$from]`.
+
+Set `$num = $num + 1` and `$pos = $p + $to->length() - $from->length()`.
+
+If `$num < $limit` go to `Loop`, otherwise continue to `Done`.
+
+`Done`: Return the resulting string (with the replacements performed).
+
+    string replace(string $from, string $to, int $limit = PHP_INT_MAX)
+
+Return `$this->replace(array($from => $to), $limit)`.
+
+> Notes:
+>
+ * This method corresponds to the `str_replace` and `strtr` functions.
+ * The behavior with multiple replacements matches that of `strtr` rather than `str_replace`:
+   Namely all replacements happen in one pass and parts that have already been replaced are not
+   considered again. `str_replace` on the other hand will simply go through the list of
+   replacements one-by-one and always apply them to the full string. This means that parts changed
+   by previous replacements can be replaced again by later ones. The reason why the `strtr`
+   behavior was chosen, is that it both appears more useful and is hard to implement in userland
+   code (and impossible to implement with good performance). The `str_replace` behavior on the
+   other hand is trivial to implement as a loop of `->replace()` calls.
+ * The `strtr` character translation behavior is not specially provided, as it is not that commonly
+   needed and you can just use `->replace(["a" => "b", "c" => "d"])` instead. A generic solution
+   with arbitrary character lists is
+   `->replace(array_combine($fromChars->chunk(), $toChars->chunk()))`.
+ * I was not entirely sure whether the `replace($from, $to, $limit)` overload is necessary (I'm not
+   a fan of such overloads in general), as you can easily write `replace([$from => $to], $limit)`
+   and the `=>` even looks rather nice in the context. However, as a single replace is likely the
+   most common use case, I decided to include this overload.
+ * Currently the empty string is not allowed as the from string of a replacement. This matches the
+   behavior of `str_replace` and `strtr`. `preg_replace` on the other hand allows empty-string
+   replacements with the following behavior: If an empty-string replace occured, then another
+   empty-string replacement cannot occur at the same position (this prevents an infinite loop).
+   With this behavior `"xyz"->replace("", "_")` would result in `"_x_y_z_"`. Currently the empty
+   string is not supported, because it would require explicit handling in the algorithm (and as
+   such is somewhat inconsistent). However, it would be not unreasonable to support this behavior.
+
+---
+
     string[] split(string $separator = null, int $limit = PHP_INT_MAX)
 
 TODO:

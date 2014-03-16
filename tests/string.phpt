@@ -146,6 +146,51 @@ r('repeat(1)');
 r('repeat(0)');
 r('repeat(-1)');
 
+str('abcdefabcdefabcdef');
+
+r('replace("abc", "ABC")');
+r('replace("abc", "ABC", 1)');
+r('replace("abc", "ABC", 2)');
+r('replace("abc", "ABC", 3)');
+r('replace("abc", "ABC", 4)');
+r('replace("abc", "")');
+r('replace("abc", "", 2)');
+r('replace("ABC", "abc")');
+r('replace("ABC", "abc", 1)');
+
+sep();
+r('replace(["abc" => "ABC"])');
+r('replace(["abc" => ""])');
+r('replace(["abc" => "", "def" => "DEF"])');
+r('replace(["abc" => "ABC", "cde" => "nop"])');
+r('replace(["abc" => "ABC", "Cde" => "nop"])');
+r('replace(["abc" => "ABC", "def" => "DEF"])');
+r('replace(["abc" => "ABC", "ABC" => "nop"])');
+r('replace(["abc" => "ABC", "abcdef" => "ABCDEF"])');
+r('replace(["abcdef" => "ABCDEF", "abc" => "ABC"])');
+
+sep();
+r('replace(["abc" => "ABC"], 2)');
+r('replace(["abc" => ""], 2)');
+r('replace(["abc" => "", "def" => "DEF"], 2)');
+r('replace(["abc" => "ABC", "cde" => "nop"], 2)');
+r('replace(["abc" => "ABC", "Cde" => "nop"], 2)');
+r('replace(["abc" => "ABC", "def" => "DEF"], 2)');
+r('replace(["abc" => "ABC", "ABC" => "nop"], 2)');
+r('replace(["abc" => "ABC", "abcdef" => "ABCDEF"], 2)');
+r('replace(["abcdef" => "ABCDEF", "abc" => "ABC"], 2)');
+
+sep();
+r('replace("abc", "ABC", 0)');
+r('replace("abc", "ABC", -1)');
+r('replace(["abc" => "ABC"], 0)');
+r('replace(["abc" => "ABC"], -1)');
+
+r('replace("", "nop")');
+r('replace("", "nop", 1)');
+r('replace(["abc" => "ABC", "" => "nop"])');
+r('replace(["abc" => "ABC", "" => "nop"], 1)');
+
 str('');
 
 r('length()');
@@ -165,6 +210,8 @@ r('count("", 0)');
 r('count("", 0, 0)');
 r('repeat(3)');
 r('chunk(3)');
+r('replace("foo", "bar")');
+r('replace("foo", "bar", 1)');
 
 str('foobar');
 
@@ -188,13 +235,6 @@ r('split(",")');
 r('split(",", 1)');
 r('split(",", 2)');
 r('split(",", -1)');
-
-str('some string with some words');
-
-r('replace("some", "SOME")');
-r('replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"])');
-r('replace("some", "SOME", 1)');
-r('replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3)');
 
 str('     hello     world     ');
 
@@ -388,6 +428,55 @@ repeat(0): string(0) ""
 repeat(-1):
 InvalidArgumentException: Number of repetitions can not be negative
 
+Working on string "abcdefabcdefabcdef"
+
+replace("abc", "ABC"): string(18) "ABCdefABCdefABCdef"
+replace("abc", "ABC", 1): string(18) "ABCdefabcdefabcdef"
+replace("abc", "ABC", 2): string(18) "ABCdefABCdefabcdef"
+replace("abc", "ABC", 3): string(18) "ABCdefABCdefABCdef"
+replace("abc", "ABC", 4): string(18) "ABCdefABCdefABCdef"
+replace("abc", ""): string(9) "defdefdef"
+replace("abc", "", 2): string(12) "defdefabcdef"
+replace("ABC", "abc"): string(18) "abcdefabcdefabcdef"
+replace("ABC", "abc", 1): string(18) "abcdefabcdefabcdef"
+
+replace(["abc" => "ABC"]): string(18) "ABCdefABCdefABCdef"
+replace(["abc" => ""]): string(9) "defdefdef"
+replace(["abc" => "", "def" => "DEF"]): string(9) "DEFDEFDEF"
+replace(["abc" => "ABC", "cde" => "nop"]): string(18) "ABCdefABCdefABCdef"
+replace(["abc" => "ABC", "Cde" => "nop"]): string(18) "ABCdefABCdefABCdef"
+replace(["abc" => "ABC", "def" => "DEF"]): string(18) "ABCDEFABCDEFABCDEF"
+replace(["abc" => "ABC", "ABC" => "nop"]): string(18) "ABCdefABCdefABCdef"
+replace(["abc" => "ABC", "abcdef" => "ABCDEF"]): string(18) "ABCDEFABCDEFABCDEF"
+replace(["abcdef" => "ABCDEF", "abc" => "ABC"]): string(18) "ABCDEFABCDEFABCDEF"
+
+replace(["abc" => "ABC"], 2): string(18) "ABCdefABCdefabcdef"
+replace(["abc" => ""], 2): string(12) "defdefabcdef"
+replace(["abc" => "", "def" => "DEF"], 2): string(15) "DEFabcdefabcdef"
+replace(["abc" => "ABC", "cde" => "nop"], 2): string(18) "ABCdefABCdefabcdef"
+replace(["abc" => "ABC", "Cde" => "nop"], 2): string(18) "ABCdefABCdefabcdef"
+replace(["abc" => "ABC", "def" => "DEF"], 2): string(18) "ABCDEFabcdefabcdef"
+replace(["abc" => "ABC", "ABC" => "nop"], 2): string(18) "ABCdefABCdefabcdef"
+replace(["abc" => "ABC", "abcdef" => "ABCDEF"], 2): string(18) "ABCDEFABCDEFabcdef"
+replace(["abcdef" => "ABCDEF", "abc" => "ABC"], 2): string(18) "ABCDEFABCDEFabcdef"
+
+replace("abc", "ABC", 0):
+InvalidArgumentException: Limit has to be positive
+replace("abc", "ABC", -1):
+InvalidArgumentException: Limit has to be positive
+replace(["abc" => "ABC"], 0):
+InvalidArgumentException: Limit has to be positive
+replace(["abc" => "ABC"], -1):
+InvalidArgumentException: Limit has to be positive
+replace("", "nop"):
+InvalidArgumentException: From string can not be an empty string
+replace("", "nop", 1):
+InvalidArgumentException: From string can not be an empty string
+replace(["abc" => "ABC", "" => "nop"]):
+InvalidArgumentException: Replacement array keys can not contain an empty string
+replace(["abc" => "ABC", "" => "nop"], 1):
+InvalidArgumentException: Replacement array keys can not contain an empty string
+
 Working on string ""
 
 length(): int(0)
@@ -410,6 +499,8 @@ chunk(3): array(1) {
   [0]=>
   string(0) ""
 }
+replace("foo", "bar"): string(0) ""
+replace("foo", "bar", 1): string(0) ""
 
 Working on string "foobar"
 
@@ -451,15 +542,6 @@ split(",", -1): array(2) {
   [1]=>
   string(3) "456"
 }
-
-Working on string "some string with some words"
-
-replace("some", "SOME"): string(27) "SOME string with SOME words"
-replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"]):
-string(27) "SOME STRING with SOME WORDS"
-replace("some", "SOME", 1): string(27) "SOME string with some words"
-replace(["some" => "SOME", "string" => "STRING", "words" => "WORDS"], 3):
-string(27) "SOME STRING with SOME words"
 
 Working on string "     hello     world     "
 
