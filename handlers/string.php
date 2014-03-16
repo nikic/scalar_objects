@@ -221,27 +221,16 @@ class Handler {
 
     /* This effectively implements strtr with a limit */
     protected function replaceWithLimit($str, array $replacements, $limit) {
-        $this->sortKeysByStringLength($replacements);
-        $offsets = $this->computeInitialOffsets($str, $replacements);
-        while (!empty($offsets)) {
-            list($offset, $from) = $this->getSmallestOffset($offsets);
-
-            $to = $replacements[$from];
-            $fromLength = $from->length();
-            $toLength = $to->length();
-
-            $str = $str->replaceSlice($to, $offset, $fromLength);
-
-            if (0 === --$limit) {
-                break;
-            }
-
-            $oldEndOffset = $offset + $fromLength;
-            $newEndOffset = $offset + $toLength;
-            $this->updateOffsets($str, $offsets, $oldEndOffset, $newEndOffset);
+        if (empty($replacements)) {
+            return $str;
         }
 
-        return $str;
+        $this->sortKeysByStringLength($replacements);
+        $regex = $this->createFromStringRegex($replacements);
+
+        return preg_replace_callback($regex, function($matches) use($replacements) {
+            return $replacements[$matches[0]];
+        }, $str, $limit);
     }
 
     protected function sortKeysByStringLength(array &$array) {
@@ -250,40 +239,12 @@ class Handler {
         });
     }
 
-    protected function computeInitialOffsets($str, array $replacements) {
-        $offsets = [];
+    protected function createFromStringRegex(array $replacements) {
+        $fromRegexes = [];
         foreach ($replacements as $from => $_) {
-            $offset = $str->indexOf($from);
-            if (false !== $offset) {
-                $offsets[$from] = $offset;
-            }
+            $fromRegexes[] = preg_quote($from, '~');
         }
-        return $offsets;
-    }
 
-    protected function getSmallestOffset(array $offsets) {
-        $minOffset = null;
-        $minFrom = null;
-        foreach ($offsets as $from => $offset) {
-            if ($minOffset === null || $offset < $minOffset) {
-                $minOffset = $offset;
-                $minFrom = $from;
-            } 
-        }
-        return [$minOffset, $minFrom];
-    }
-
-    protected function updateOffsets($str, array &$offsets, $oldEndOffset, $newEndOffset) {
-        foreach ($offsets as $from => &$offset) {
-            if ($offset >= $oldEndOffset) {
-                $offset += $newEndOffset - $oldEndOffset;
-                continue;
-            }
-
-            $offset = $str->indexOf($from, $newEndOffset);
-            if (false === $offset) {
-                unset($offsets[$from]);
-            }
-        }
+        return '~(?:' . implode('|', $fromRegexes) . ')~S';
     }
 }

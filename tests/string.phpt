@@ -159,6 +159,7 @@ r('replace("ABC", "abc")');
 r('replace("ABC", "abc", 1)');
 
 sep();
+r('replace([])');
 r('replace(["abc" => "ABC"])');
 r('replace(["abc" => ""])');
 r('replace(["abc" => "", "def" => "DEF"])');
@@ -170,6 +171,7 @@ r('replace(["abc" => "ABC", "abcdef" => "ABCDEF"])');
 r('replace(["abcdef" => "ABCDEF", "abc" => "ABC"])');
 
 sep();
+r('replace([], 2)');
 r('replace(["abc" => "ABC"], 2)');
 r('replace(["abc" => ""], 2)');
 r('replace(["abc" => "", "def" => "DEF"], 2)');
@@ -440,6 +442,7 @@ replace("abc", "", 2): string(12) "defdefabcdef"
 replace("ABC", "abc"): string(18) "abcdefabcdefabcdef"
 replace("ABC", "abc", 1): string(18) "abcdefabcdefabcdef"
 
+replace([]): string(18) "abcdefabcdefabcdef"
 replace(["abc" => "ABC"]): string(18) "ABCdefABCdefABCdef"
 replace(["abc" => ""]): string(9) "defdefdef"
 replace(["abc" => "", "def" => "DEF"]): string(9) "DEFDEFDEF"
@@ -450,6 +453,7 @@ replace(["abc" => "ABC", "ABC" => "nop"]): string(18) "ABCdefABCdefABCdef"
 replace(["abc" => "ABC", "abcdef" => "ABCDEF"]): string(18) "ABCDEFABCDEFABCDEF"
 replace(["abcdef" => "ABCDEF", "abc" => "ABC"]): string(18) "ABCDEFABCDEFABCDEF"
 
+replace([], 2): string(18) "abcdefabcdefabcdef"
 replace(["abc" => "ABC"], 2): string(18) "ABCdefABCdefabcdef"
 replace(["abc" => ""], 2): string(12) "defdefabcdef"
 replace(["abc" => "", "def" => "DEF"], 2): string(15) "DEFabcdefabcdef"

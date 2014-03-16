@@ -299,6 +299,7 @@ Return `$this->replace(array($from => $to), $limit)`.
    With this behavior `"xyz"->replace("", "_")` would result in `"_x_y_z_"`. Currently the empty
    string is not supported, because it would require explicit handling in the algorithm (and as
    such is somewhat inconsistent). However, it would be not unreasonable to support this behavior.
+ * An empty array is a valid input (in which case no replacements occur).
 
 ---
 
