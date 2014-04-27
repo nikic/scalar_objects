@@ -1,5 +1,5 @@
 --TEST--
-$this is not bound for closures in type handlers
+$this is bound for closures in type handlers
 --FILE--
 <?php
 
@@ -17,5 +17,5 @@ $array->method();
 
 ?>
 --EXPECTF--
-Notice: Undefined variable: this in %s on line %d
-NULL
+object(ArrayHandler)#%d (0) {
+}
