@@ -206,7 +206,14 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 		opline->op1_type, &opline->op1, execute_data, &free_op1 TSRMLS_CC
 	);
 
-	Z_ADDREF_P(obj);
+	/* __callStatic uses zend_call_method internally, which assumes $this is an object. We
+	 * detect this case by checking for ZEND_INTERNAL_FUNCTION, as __callStatic uses an
+	 * indirection via an internal wrapper function. */
+	if (fbc->type == ZEND_INTERNAL_FUNCTION) {
+		obj = NULL;
+	} else {
+		Z_ADDREF_P(obj);
+	}
 
 #ifdef ZEND_ENGINE_2_5
 	execute_data->call = execute_data->call_slots + opline->result.num;
