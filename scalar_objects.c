@@ -388,7 +388,9 @@ ZEND_RSHUTDOWN_FUNCTION(scalar_objects)
 {
 	int i;
 	for (i = 0; i < SCALAR_OBJECTS_NUM_HANDLERS; i++) {
-		zval_dtor(SCALAR_OBJECTS_G(handlers)[i]);
+		if (SCALAR_OBJECTS_G(handlers)[i]) {
+			zval_dtor(SCALAR_OBJECTS_G(handlers)[i]);
+		}
 	}
 	return SUCCESS;
 }
