@@ -56,13 +56,20 @@ ZEND_GET_MODULE(scalar_objects)
         zval_ptr_dtor(&should_free.var);                                            \
     }
 
-#define CHECK_ARG_SEND_TYPE(zf, arg_num, m) \
+#if ZEND_MODULE_API_NO >= 20131227
+#define SHOULD_SEND_ARG_BY_REF(zf, arg_num) \
         ((zf)->common.arg_info && \
         (arg_num <= (zf)->common.num_args \
-                ? ((zf)->common.arg_info[arg_num-1].pass_by_reference & (m)) \
+                ? ((zf)->common.arg_info[arg_num-1].pass_by_reference & (ZEND_SEND_BY_REF|ZEND_SEND_PREFER_REF)) \
                 : ((zf)->common.fn_flags & ZEND_ACC_VARIADIC) \
-                        ? ((zf)->common.arg_info[(zf)->common.num_args-1].pass_by_reference & (m)) : 0))
-
+                        ? ((zf)->common.arg_info[(zf)->common.num_args-1].pass_by_reference & (ZEND_SEND_BY_REF|ZEND_SEND_PREFER_REF)) : 0))
+#else
+#define SHOULD_SEND_ARG_BY_REF(zf, arg_num) \
+        ((zf)->common.arg_info && \
+        (arg_num <= (zf)->common.num_args \
+                ? ((zf)->common.arg_info[arg_num-1].pass_by_reference & (ZEND_SEND_BY_REF|ZEND_SEND_PREFER_REF)) \
+                : ((zf)->common.fn_flags & (ZEND_ACC_PASS_REST_BY_REFERENCE|ZEND_ACC_PASS_REST_PREFER_REF))
+#endif
 
 static zval *get_zval_ptr_safe(
 	int op_type, const znode_op *node, const zend_execute_data *execute_data
@@ -237,7 +244,7 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 
 	/* Pass $self */
 	ZEND_VM_STACK_GROW_IF_NEEDED(1);
-	if (CHECK_ARG_SEND_TYPE(fbc, 1, ZEND_SEND_BY_REF|ZEND_SEND_PREFER_REF)) {
+	if (SHOULD_SEND_ARG_BY_REF(fbc, 1)) {
 		Z_SET_ISREF_P(obj);
 	}
 	zend_vm_stack_push(obj TSRMLS_CC);
