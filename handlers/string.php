@@ -3,51 +3,51 @@
 namespace str;
 
 class Handler {
-    public function length() {
-        return strlen($this);
+    public function length($self) {
+        return strlen($self);
     }
 
     /*
      * Slicing methods
      */
 
-    public function slice($offset, $length = null) {
-        $offset = $this->prepareOffset($offset);
-        $length = $this->prepareLength($offset, $length);
+    public function slice($self, $offset, $length = null) {
+        $offset = $this->prepareOffset($self, $offset);
+        $length = $this->prepareLength($self, $offset, $length);
 
         if (0 === $length) {
             return '';
         }
 
-        return substr($this, $offset, $length);
+        return substr($self, $offset, $length);
     }
 
-    public function replaceSlice($replacement, $offset, $length = null) {
-        $offset = $this->prepareOffset($offset);
-        $length = $this->prepareLength($offset, $length);
+    public function replaceSlice($self, $replacement, $offset, $length = null) {
+        $offset = $this->prepareOffset($self, $offset);
+        $length = $this->prepareLength($self, $offset, $length);
 
-        return substr_replace($this, $replacement, $offset, $length);
+        return substr_replace($self, $replacement, $offset, $length);
     }
 
     /*
      * Search methods
      */
 
-    public function indexOf($string, $offset = 0) {
-        $offset = $this->prepareOffset($offset);
+    public function indexOf($self, $string, $offset = 0) {
+        $offset = $this->prepareOffset($self, $offset);
 
         if ('' === $string) {
             return $offset;
         }
 
-        return strpos($this, $string, $offset);
+        return strpos($self, $string, $offset);
     }
 
-    public function lastIndexOf($string, $offset = null) {
+    public function lastIndexOf($self, $string, $offset = null) {
         if (null === $offset) {
-            $offset = $this->length();
+            $offset = $this->length($self);
         } else {
-            $offset = $this->prepareOffset($offset);
+            $offset = $this->prepareOffset($self, $offset);
         }
 
         if ('' === $string) {
@@ -56,30 +56,30 @@ class Handler {
 
         /* Converts $offset to a negative offset as strrpos has a different
          * behavior for positive offsets. */
-        return strrpos($this, $string, $offset - $this->length());
+        return strrpos($self, $string, $offset - $this->length($self));
     }
 
-    public function contains($string) {
-        return false !== $this->indexOf($string);
+    public function contains($self, $string) {
+        return false !== $this->indexOf($self, $string);
     }
 
-    public function startsWith($string) {
-        return 0 === $this->indexOf($string);
+    public function startsWith($self, $string) {
+        return 0 === $this->indexOf($self, $string);
     }
 
-    public function endsWith($string) {
-        return $this->lastIndexOf($string) === $this->length() - $string->length();
+    public function endsWith($self, $string) {
+        return $this->lastIndexOf($self, $string) === $this->length($self) - $string->length();
     }
 
-    public function count($string, $offset = 0, $length = null) {
-        $offset = $this->prepareOffset($offset);
-        $length = $this->prepareLength($offset, $length);
+    public function count($self, $string, $offset = 0, $length = null) {
+        $offset = $this->prepareOffset($self, $offset);
+        $length = $this->prepareLength($self, $offset, $length);
 
         if ('' === $string) {
             return $length + 1;
         }
 
-        return substr_count($this, $string, $offset, $length);
+        return substr_count($self, $string, $offset, $length);
     }
 
     /* This function has two prototypes:
@@ -87,7 +87,7 @@ class Handler {
      * replace(array(string $from => string $to) $replacements, int $limit = PHP_MAX_INT)
      * replace(string $from, string $to, int $limit = PHP_MAX_INT)
      */
-    public function replace($from, $to = null, $limit = null) {
+    public function replace($self, $from, $to = null, $limit = null) {
         if (is_array($from)) {
             $replacements = $from;
             $limit = $to;
@@ -97,71 +97,71 @@ class Handler {
             );
 
             if (null === $limit) {
-                return strtr($this, $from);
+                return strtr($self, $from);
             } else {
                 $this->verifyPositive($limit, 'Limit');
-                return $this->replaceWithLimit($this, $replacements, $limit);
+                return $this->replaceWithLimit($self, $replacements, $limit);
             }
         } else {
             $this->verifyNotEmptyString($from, 'From string');
 
             if (null === $limit) {
-                return str_replace($from, $to, $this);
+                return str_replace($from, $to, $self);
             } else {
                 $this->verifyPositive($limit, 'Limit');
-                return $this->replaceWithLimit($this, [$from => $to], $limit);
+                return $this->replaceWithLimit($self, [$from => $to], $limit);
             }
         }
     }
 
-    public function split($separator, $limit = PHP_INT_MAX) {
-        return explode($separator, $this, $limit);
+    public function split($self, $separator, $limit = PHP_INT_MAX) {
+        return explode($separator, $self, $limit);
     }
 
-    public function chunk($chunkLength = 1) {
+    public function chunk($self, $chunkLength = 1) {
         $this->verifyPositive($chunkLength, 'Chunk length');
-        return str_split($this, $chunkLength);
+        return str_split($self, $chunkLength);
     }
 
-    public function repeat($times) {
+    public function repeat($self, $times) {
         $this->verifyNotNegative($times, 'Number of repetitions');
-        return str_repeat($this, $times);
+        return str_repeat($self, $times);
     }
 
-    public function reverse() {
-        return strrev($this);
+    public function reverse($self) {
+        return strrev($self);
     }
 
-    public function toLower() {
-        return strtolower($this);
+    public function toLower($self) {
+        return strtolower($self);
     }
 
-    public function toUpper() {
-        return strtoupper($this);
+    public function toUpper($self) {
+        return strtoupper($self);
     }
 
-    public function trim($characters = " \t\n\r\v\0") {
-        return trim($this, $characters);
+    public function trim($self, $characters = " \t\n\r\v\0") {
+        return trim($self, $characters);
     }
 
-    public function trimLeft($characters = " \t\n\r\v\0") {
-        return ltrim($this, $characters);
+    public function trimLeft($self, $characters = " \t\n\r\v\0") {
+        return ltrim($self, $characters);
     }
 
-    public function trimRight($characters = " \t\n\r\v\0") {
-        return rtrim($this, $characters);
+    public function trimRight($self, $characters = " \t\n\r\v\0") {
+        return rtrim($self, $characters);
     }
 
-    public function padLeft($length, $padString = " ") {
-        return str_pad($this, $length, $padString, STR_PAD_LEFT);
+    public function padLeft($self, $length, $padString = " ") {
+        return str_pad($self, $length, $padString, STR_PAD_LEFT);
     }
 
-    public function padRight($length, $padString = " ") {
-        return str_pad($this, $length, $padString, STR_PAD_RIGHT);
+    public function padRight($self, $length, $padString = " ") {
+        return str_pad($self, $length, $padString, STR_PAD_RIGHT);
     }
 
-    protected function prepareOffset($offset) {
-        $len = $this->length();
+    protected function prepareOffset($self, $offset) {
+        $len = $this->length($self);
         if ($offset < -$len || $offset > $len) {
             throw new \InvalidArgumentException('Offset must be in range [-len, len]');
         }
@@ -173,19 +173,19 @@ class Handler {
         return $offset;
     }
 
-    protected function prepareLength($offset, $length) {
+    protected function prepareLength($self, $offset, $length) {
         if (null === $length) {
-            return $this->length() - $offset;
+            return $this->length($self) - $offset;
         }
         
         if ($length < 0) {
-            $length += $this->length() - $offset;
+            $length += $this->length($self) - $offset;
 
             if ($length < 0) {
                 throw new \InvalidArgumentException('Length too small');
             }
         } else {
-            if ($offset + $length > $this->length()) {
+            if ($offset + $length > $this->length($self)) {
                 throw new \InvalidArgumentException('Length too large');
             }
         }

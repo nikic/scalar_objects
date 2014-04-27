@@ -46,7 +46,7 @@ ZEND_MINFO_FUNCTION(scalar_objects);
 #define SCALAR_OBJECTS_NUM_HANDLERS (SCALAR_OBJECTS_MAX_HANDLER + 1)
 
 ZEND_BEGIN_MODULE_GLOBALS(scalar_objects)
-	zend_class_entry *handlers[SCALAR_OBJECTS_NUM_HANDLERS];
+	zval *handlers[SCALAR_OBJECTS_NUM_HANDLERS];
 ZEND_END_MODULE_GLOBALS(scalar_objects)
 
 #ifdef ZTS
