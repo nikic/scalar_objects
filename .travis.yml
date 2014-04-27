@@ -3,6 +3,10 @@ php:
   - 5.4
   - 5.6
 
+matrix:
+    allow_failures:
+        - php: 5.4
+
 before_script:
   - phpize
   - ./configure --enable-scalar-objects
