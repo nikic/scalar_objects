@@ -56,7 +56,7 @@ ZEND_GET_MODULE(scalar_objects)
         zval_ptr_dtor(&should_free.var);                                            \
     }
 
-#if ZEND_MODULE_API_NO >= 20131227
+#ifdef ZEND_ENGINE_2_6 
 #define SHOULD_SEND_ARG_BY_REF(zf, arg_num) \
         ((zf)->common.arg_info && \
         (arg_num <= (zf)->common.num_args \
