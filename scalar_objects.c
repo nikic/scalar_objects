@@ -167,7 +167,7 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 {
 	zend_op *opline = execute_data->opline;
 	zend_free_op free_op1, free_op2;
-	zval *obj, *method;
+	zval *obj, *method, *this;
 	zend_class_entry *ce;
 	zend_function *fbc;
 
@@ -202,17 +202,24 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	method = get_zval_ptr_real(
 		opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC
 	);
-	obj = get_object_zval_with_ref_separation_attempt(
+	this = get_object_zval_with_ref_separation_attempt(
 		opline->op1_type, &opline->op1, execute_data, &free_op1 TSRMLS_CC
 	);
 
-	Z_ADDREF_P(obj);
+	/* See zend_do_fcall_common_helper: An internal function assumes $this is present and won't 
+	 * check that. So PHP would crash by allowing the call. */
+	if (fbc->type == ZEND_INTERNAL_FUNCTION) {
+		zval_dtor(this TSRMLS_CC);
+		this = NULL;
+	} else {
+		Z_ADDREF_P(this);
+	}
 
 #ifdef ZEND_ENGINE_2_5
 	execute_data->call = execute_data->call_slots + opline->result.num;
 	execute_data->call->fbc = fbc;
 	execute_data->call->called_scope = ce;
-	execute_data->call->object = obj;
+	execute_data->call->object = this;
 	execute_data->call->is_ctor_call = 0;
 # ifdef ZEND_ENGINE_2_6
 	execute_data->call->num_additional_args = 0;
@@ -222,7 +229,7 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 
 	execute_data->fbc = fbc;
 	execute_data->called_scope = ce;
-	execute_data->object = obj;
+	execute_data->object = this;
 #endif
 
 	FREE_OP(free_op2);
