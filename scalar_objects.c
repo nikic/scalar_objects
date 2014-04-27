@@ -68,7 +68,8 @@ ZEND_GET_MODULE(scalar_objects)
         ((zf)->common.arg_info && \
         (arg_num <= (zf)->common.num_args \
                 ? ((zf)->common.arg_info[arg_num-1].pass_by_reference & (ZEND_SEND_BY_REF|ZEND_SEND_PREFER_REF)) \
-                : ((zf)->common.fn_flags & (ZEND_ACC_PASS_REST_BY_REFERENCE|ZEND_ACC_PASS_REST_PREFER_REF))
+                : ((zf)->common.fn_flags & (ZEND_ACC_PASS_REST_BY_REFERENCE|ZEND_ACC_PASS_REST_PREFER_REF)) \
+	))
 #endif
 
 static zval *get_zval_ptr_safe(
