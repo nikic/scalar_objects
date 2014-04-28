@@ -3,6 +3,7 @@ Test __call gets invoked
 --SKIPIF--
 <?php
 if (!extension_loaded('scalar_objects')) echo 'skip';
+if (version_compare(PHP_VERSION, '5.6.0-beta1', '<')) echo 'skip';
 ?>
 --FILE--
 <?php
