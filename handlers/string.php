@@ -96,6 +96,11 @@ class Handler {
                 array_keys($replacements), 'Replacement array keys'
             );
 
+            // strtr() with an empty replacements array will crash in some PHP versions
+            if (empty($replacements)) {
+                return $this;
+            }
+
             if (null === $limit) {
                 return strtr($this, $from);
             } else {
