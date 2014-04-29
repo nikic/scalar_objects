@@ -1,14 +1,11 @@
 language: php
 php:
   - 5.4
-
-before_install:
-  - sudo apt-get update -qq
-  - sudo apt-get install -qq valgrind
+  - 5.5
 
 before_script:
   - phpize
   - ./configure --enable-scalar-objects
   - make
 
-script: REPORT_EXIT_STATUS=1 php run-tests.php -m -p `which php` --show-diff -d extension=`pwd`/modules/scalar_objects.so -q
+script: REPORT_EXIT_STATUS=1 php run-tests.php -p `which php` --show-diff -d extension=`pwd`/modules/scalar_objects.so -q
