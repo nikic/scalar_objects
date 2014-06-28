@@ -21,10 +21,6 @@
 #ifndef PHP_SCALAR_OBJECTS_H
 #define PHP_SCALAR_OBJECTS_H
 
-#if ZEND_MODULE_API_NO < 20131226
-#error *** You need minimum PHP 5.6.0 to compile this extension
-#endif
-
 extern zend_module_entry scalar_objects_module_entry;
 #define phpext_scalar_objects_ptr &scalar_objects_module_entry
 

@@ -179,6 +179,51 @@ static zval *get_object_zval_with_ref_separation_attempt(
 	);
 }
 
+ZEND_FUNCTION(primitive_indirection)
+{
+	zval *handler, *retval_ptr;
+	zval ***args = NULL;
+	zval ***params = NULL;
+	int i, num_args = 0;
+	zend_function *active_function = EG(current_execute_data)->function_state.function;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "*", &args, &num_args) == FAILURE) {
+		return;
+	}
+
+	/* Params = [object, ...args] */
+	params = safe_emalloc(sizeof(zval **), num_args + 1, 0);
+	params[0] = &EG(current_execute_data)->object;
+	for (i = 0; i < num_args; i++) {
+		params[i + 1] = args[i];
+	}
+
+	handler = SCALAR_OBJECTS_G(handlers)[Z_TYPE_P(EG(current_execute_data)->object)];
+	{
+		zend_fcall_info fci;
+		fci.size = sizeof(fci);
+		fci.function_table = NULL;
+		fci.object_ptr = handler;
+		MAKE_STD_ZVAL(fci.function_name);
+		ZVAL_STRINGL(fci.function_name, active_function->common.function_name, strlen(active_function->common.function_name), 1);
+		fci.retval_ptr_ptr = &retval_ptr;
+		fci.param_count = num_args + 1;
+		fci.params = params;
+		fci.no_separation = (zend_bool) 1;
+		fci.symbol_table = NULL;
+
+		if (SUCCESS == zend_call_function(&fci, NULL TSRMLS_CC)) {
+			if (retval_ptr) {
+				COPY_PZVAL_TO_ZVAL(*return_value, retval_ptr);
+			}
+		} else {
+			RETVAL_FALSE;
+		}
+	}
+	efree(params);
+	efree(args);
+}
+
 static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 {
 	zend_op *opline = execute_data->opline;
@@ -203,16 +248,27 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	}
 
 	Z_ADDREF_P(handler);
-
 	ce = Z_OBJCE_P(handler);
+
+        /* For PHP 5.6, we can set num_additional_args and push object into the stack. For older
+         * versions, we must use an indirection over a handler function */
+#if ZEND_MODULE_API_NO < 20131226
+	fbc = (zend_function*)emalloc(sizeof(zend_function));
+	fbc->type = ZEND_INTERNAL_FUNCTION;
+	fbc->internal_function.fn_flags = ZEND_ACC_PUBLIC | ZEND_ACC_CALL_VIA_HANDLER;
+	fbc->internal_function.handler = ZEND_FN(primitive_indirection);
+	fbc->internal_function.module = 0;
+	fbc->internal_function.scope = EG(scope);
+	fbc->internal_function.function_name = estrndup(Z_STRVAL_P(method), Z_STRLEN_P(method));
+#else
 	fbc = Z_OBJ_HT_P(handler)->get_method(
 		&handler, Z_STRVAL_P(method), Z_STRLEN_P(method),
 		opline->op2_type == IS_CONST ? opline->op2.literal + 1 : NULL TSRMLS_CC
 	);
-
 	if (!fbc) {
 		zend_error(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
 	}
+#endif
 
 	method = get_zval_ptr_real(
 		opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC
@@ -220,35 +276,38 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	obj = get_object_zval_with_ref_separation_attempt(
 		opline->op1_type, &opline->op1, execute_data, &free_op1 TSRMLS_CC
 	);
-
 	Z_ADDREF_P(obj);
 
 #ifdef ZEND_ENGINE_2_5
-	execute_data->call = execute_data->call_slots + opline->result.num;
-	execute_data->call->fbc = fbc;
-	execute_data->call->called_scope = ce;
-	execute_data->call->object = handler;
-	execute_data->call->is_ctor_call = 0;
-# ifdef ZEND_ENGINE_2_6
-	execute_data->call->num_additional_args = 1;
+        execute_data->call = execute_data->call_slots + opline->result.num;
+        execute_data->call->fbc = fbc;
+        execute_data->call->called_scope = ce;
+        execute_data->call->is_ctor_call = 0;
+#endif
+
+#if ZEND_MODULE_API_NO < 20131226
+        zend_ptr_stack_3_push(&EG(arg_types_stack), execute_data->fbc, execute_data->object, execute_data->called_scope);
+
+        execute_data->fbc = fbc;
+        execute_data->called_scope = ce;
+        execute_data->object = obj;
+# ifdef ZEND_ENGINE_2_5
+	execute_data->call->object = obj;
 # endif
 #else
-	zend_ptr_stack_3_push(&EG(arg_types_stack), execute_data->fbc, execute_data->object, execute_data->called_scope);
+	execute_data->call->num_additional_args = 1;
+	execute_data->call->object = handler;
 
-	execute_data->fbc = fbc;
-	execute_data->called_scope = ce;
-	execute_data->object = handler;
+        /* Pass $self */
+        ZEND_VM_STACK_GROW_IF_NEEDED(1);
+        if (SHOULD_SEND_ARG_BY_REF(fbc, 1)) {
+                Z_SET_ISREF_P(obj);
+        }
+        zend_vm_stack_push(obj TSRMLS_CC);
 #endif
 
 	FREE_OP(free_op2);
 	FREE_OP_IF_VAR(free_op1);
-
-	/* Pass $self */
-	ZEND_VM_STACK_GROW_IF_NEEDED(1);
-	if (SHOULD_SEND_ARG_BY_REF(fbc, 1)) {
-		Z_SET_ISREF_P(obj);
-	}
-	zend_vm_stack_push(obj TSRMLS_CC);
 
 	execute_data->opline++;
 	return ZEND_USER_OPCODE_CONTINUE;
