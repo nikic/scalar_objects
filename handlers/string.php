@@ -98,7 +98,7 @@ class Handler {
 
             // strtr() with an empty replacements array will crash in some PHP versions
             if (empty($replacements)) {
-                return $this;
+                return $self;
             }
 
             if (null === $limit) {
