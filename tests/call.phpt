@@ -29,7 +29,7 @@ echo "Alive\n";
 --EXPECTF--
 array(1) {
   [0]=>
-  %sNULL
+  %sULL
 }
 Caught expected NVE 'Calling length()'
 Alive
