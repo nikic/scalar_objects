@@ -18,9 +18,9 @@ $number= 1;
 $number->toString();
 echo "Alive\n";
 ?>
---EXPECT--
+--EXPECTF--
 array(1) {
   [0]=>
-  int(1)
+  %snt(1)
 }
 Alive
