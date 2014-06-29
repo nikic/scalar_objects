@@ -56,6 +56,22 @@ ZEND_GET_MODULE(scalar_objects)
         zval_ptr_dtor(&should_free.var);                                            \
     }
 
+#ifdef ZEND_ENGINE_2_6 
+#define SHOULD_SEND_ARG_BY_REF(zf, arg_num) \
+        ((zf)->common.arg_info && \
+        (arg_num <= (zf)->common.num_args \
+                ? ((zf)->common.arg_info[arg_num-1].pass_by_reference & (ZEND_SEND_BY_REF|ZEND_SEND_PREFER_REF)) \
+                : ((zf)->common.fn_flags & ZEND_ACC_VARIADIC) \
+                        ? ((zf)->common.arg_info[(zf)->common.num_args-1].pass_by_reference & (ZEND_SEND_BY_REF|ZEND_SEND_PREFER_REF)) : 0))
+#else
+#define SHOULD_SEND_ARG_BY_REF(zf, arg_num) \
+        ((zf)->common.arg_info && \
+        (arg_num <= (zf)->common.num_args \
+                ? ((zf)->common.arg_info[arg_num-1].pass_by_reference & (ZEND_SEND_BY_REF|ZEND_SEND_PREFER_REF)) \
+                : ((zf)->common.fn_flags & (ZEND_ACC_PASS_REST_BY_REFERENCE|ZEND_ACC_PASS_REST_PREFER_REF)) \
+	))
+#endif
+
 static zval *get_zval_ptr_safe(
 	int op_type, const znode_op *node, const zend_execute_data *execute_data
 ) {
@@ -163,13 +179,58 @@ static zval *get_object_zval_with_ref_separation_attempt(
 	);
 }
 
+ZEND_FUNCTION(primitive_indirection)
+{
+	zval *handler, *retval_ptr;
+	zval ***args = NULL;
+	zval ***params = NULL;
+	int i, num_args = 0;
+	zend_function *active_function = EG(current_execute_data)->function_state.function;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "*", &args, &num_args) == FAILURE) {
+		return;
+	}
+
+	/* Params = [object, ...args] */
+	params = safe_emalloc(sizeof(zval **), num_args + 1, 0);
+	params[0] = &EG(current_execute_data)->object;
+	for (i = 0; i < num_args; i++) {
+		params[i + 1] = args[i];
+	}
+
+	handler = SCALAR_OBJECTS_G(handlers)[Z_TYPE_P(EG(current_execute_data)->object)];
+	{
+		zend_fcall_info fci;
+		fci.size = sizeof(fci);
+		fci.function_table = NULL;
+		fci.object_ptr = handler;
+		MAKE_STD_ZVAL(fci.function_name);
+		ZVAL_STRINGL(fci.function_name, active_function->common.function_name, strlen(active_function->common.function_name), 1);
+		fci.retval_ptr_ptr = &retval_ptr;
+		fci.param_count = num_args + 1;
+		fci.params = params;
+		fci.no_separation = (zend_bool) 1;
+		fci.symbol_table = NULL;
+
+		if (SUCCESS == zend_call_function(&fci, NULL TSRMLS_CC)) {
+			if (retval_ptr) {
+				COPY_PZVAL_TO_ZVAL(*return_value, retval_ptr);
+			}
+		} else {
+			RETVAL_FALSE;
+		}
+	}
+	efree(params);
+	efree(args);
+}
+
 static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 {
 	zend_op *opline = execute_data->opline;
 	zend_free_op free_op1, free_op2;
-	zval *obj, *method;
-	zend_class_entry *ce;
+	zval *obj, *method, *handler;
 	zend_function *fbc;
+	zend_class_entry *ce;
 
 	/* First we fetch the ops without refcount changes or errors. Then we check whether we want
 	 * to handle this opcode ourselves or fall back to the original opcode. Only once we know for
@@ -181,23 +242,33 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 		return ZEND_USER_OPCODE_DISPATCH;
 	}
 
-	ce = SCALAR_OBJECTS_G(handlers)[Z_TYPE_P(obj)];
-	if (!ce) {
+	handler = SCALAR_OBJECTS_G(handlers)[Z_TYPE_P(obj)];
+	if (!handler) {
 		zend_error(E_ERROR, "Call to a member function %s() on a non-object", Z_STRVAL_P(method));
 	}
 
-	if (ce->get_static_method) {
-		fbc = ce->get_static_method(ce, Z_STRVAL_P(method), Z_STRLEN_P(method) TSRMLS_CC);
-	} else {
-		fbc = zend_std_get_static_method(
-			ce, Z_STRVAL_P(method), Z_STRLEN_P(method),
-			opline->op2_type == IS_CONST ? opline->op2.literal + 1 : NULL TSRMLS_CC
-		);
-	}
+	Z_ADDREF_P(handler);
+	ce = Z_OBJCE_P(handler);
 
+        /* For PHP 5.6, we can set num_additional_args and push object into the stack. For older
+         * versions, we must use an indirection over a handler function */
+#if ZEND_MODULE_API_NO < 20131226
+	fbc = (zend_function*)emalloc(sizeof(zend_function));
+	fbc->type = ZEND_INTERNAL_FUNCTION;
+	fbc->internal_function.fn_flags = ZEND_ACC_PUBLIC | ZEND_ACC_CALL_VIA_HANDLER;
+	fbc->internal_function.handler = ZEND_FN(primitive_indirection);
+	fbc->internal_function.module = 0;
+	fbc->internal_function.scope = EG(scope);
+	fbc->internal_function.function_name = estrndup(Z_STRVAL_P(method), Z_STRLEN_P(method));
+#else
+	fbc = Z_OBJ_HT_P(handler)->get_method(
+		&handler, Z_STRVAL_P(method), Z_STRLEN_P(method),
+		opline->op2_type == IS_CONST ? opline->op2.literal + 1 : NULL TSRMLS_CC
+	);
 	if (!fbc) {
 		zend_error(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
 	}
+#endif
 
 	method = get_zval_ptr_real(
 		opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC
@@ -205,49 +276,37 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	obj = get_object_zval_with_ref_separation_attempt(
 		opline->op1_type, &opline->op1, execute_data, &free_op1 TSRMLS_CC
 	);
-
-	/* __callStatic uses zend_call_method internally, which assumes $this is an object. We
-	 * detect this case by checking for ZEND_INTERNAL_FUNCTION, as __callStatic uses an
-	 * indirection via an internal wrapper function. */
-	if (fbc->type == ZEND_INTERNAL_FUNCTION) {
-		obj = NULL;
-	} else {
-		Z_ADDREF_P(obj);
-	}
+	Z_ADDREF_P(obj);
 
 #ifdef ZEND_ENGINE_2_5
-	execute_data->call = execute_data->call_slots + opline->result.num;
-	execute_data->call->fbc = fbc;
-	execute_data->call->called_scope = ce;
-	execute_data->call->object = obj;
-	execute_data->call->is_ctor_call = 0;
+        execute_data->call = execute_data->call_slots + opline->result.num;
+        execute_data->call->fbc = fbc;
+        execute_data->call->called_scope = ce;
+        execute_data->call->is_ctor_call = 0;
+
 # ifdef ZEND_ENGINE_2_6
-	execute_data->call->num_additional_args = 0;
+        execute_data->call->object = handler;
+        execute_data->call->num_additional_args = 1;
+
+        /* Pass $self */
+        ZEND_VM_STACK_GROW_IF_NEEDED(1);
+        if (SHOULD_SEND_ARG_BY_REF(fbc, 1)) {
+                Z_SET_ISREF_P(obj);
+        }
+        zend_vm_stack_push(obj TSRMLS_CC);
+# else
+	execute_data->call->object = obj;
 # endif
 #else
-	zend_ptr_stack_3_push(&EG(arg_types_stack), execute_data->fbc, execute_data->object, execute_data->called_scope);
+        zend_ptr_stack_3_push(&EG(arg_types_stack), execute_data->fbc, execute_data->object, execute_data->called_scope);
 
-	execute_data->fbc = fbc;
-	execute_data->called_scope = ce;
-	execute_data->object = obj;
+        execute_data->fbc = fbc;
+        execute_data->called_scope = ce;
+        execute_data->object = obj;
 #endif
 
 	FREE_OP(free_op2);
 	FREE_OP_IF_VAR(free_op1);
-
-	execute_data->opline++;
-	return ZEND_USER_OPCODE_CONTINUE;
-}
-
-static int scalar_objects_declare_lambda_function_handler(ZEND_OPCODE_HANDLER_ARGS)
-{
-	zend_op *opline = execute_data->opline;
-	zval *this_ptr = (EG(This) && Z_TYPE_P(EG(This)) == IS_OBJECT) ? EG(This) : NULL;
-
-	zend_function *fn;
-	zend_hash_quick_find(EG(function_table), Z_STRVAL_P(opline->op1.zv), Z_STRLEN_P(opline->op1.zv), Z_HASH_P(opline->op1.zv), (void *) &fn);
-
-	zend_create_closure(&SO_EX_T(opline->result.var).tmp_var, fn, EG(scope), this_ptr TSRMLS_CC);
 
 	execute_data->opline++;
 	return ZEND_USER_OPCODE_CONTINUE;
@@ -280,9 +339,9 @@ ZEND_FUNCTION(register_primitive_type_handler) {
 	char *type_str;
 	int type_str_len;
 	int type;
-	zend_class_entry *ce = NULL;
+	zval *arg;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sC", &type_str, &type_str_len, &ce) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sz", &type_str, &type_str_len, &arg) == FAILURE) {
 		return;
 	}
 
@@ -293,14 +352,62 @@ ZEND_FUNCTION(register_primitive_type_handler) {
 
 	if (SCALAR_OBJECTS_G(handlers)[type] != NULL) {
 		zend_error(E_WARNING, "Handler for type \"%s\" already exists, overriding", type_str);
+		zval_dtor(SCALAR_OBJECTS_G(handlers)[type]);
 	}
 
-	SCALAR_OBJECTS_G(handlers)[type] = ce;
+	if (arg->type == IS_STRING) {
+		zend_class_entry **pce;
+		zend_function *constructor;
+		zval *instance;
+
+		if (zend_lookup_class(Z_STRVAL_P(arg), Z_STRLEN_P(arg), &pce TSRMLS_CC) == FAILURE) {
+			zend_error(E_WARNING, "Class %s not found", Z_STRVAL_P(arg));
+			return;
+		}
+	        ALLOC_ZVAL(instance);
+		object_init_ex(instance, *pce);
+		INIT_PZVAL(instance);
+
+		if (Z_OBJ_HT_P(instance)->get_method == NULL) {
+			zend_error(E_WARNING, "Object does not support method calls");
+			zval_dtor(instance);
+			return;
+		}
+
+		/* Invoke constructor if existant */
+		constructor = Z_OBJ_HT_P(instance)->get_constructor(instance TSRMLS_CC);
+		if (constructor != NULL) {
+			zval *retval;
+			zend_call_method(
+				&instance, *pce,
+				&constructor, ZEND_CONSTRUCTOR_FUNC_NAME, sizeof(ZEND_CONSTRUCTOR_FUNC_NAME) - 1,
+				&retval,
+				0, NULL, NULL
+				TSRMLS_CC
+			);
+			if (retval != NULL) {
+				zval_dtor(retval);
+			}
+			if (EG(exception) != NULL) {
+				zval_dtor(instance);
+				return;
+			}
+		}
+		SCALAR_OBJECTS_G(handlers)[type] = instance;
+	} else if (arg->type == IS_OBJECT) {
+		ALLOC_ZVAL(SCALAR_OBJECTS_G(handlers)[type]);
+		*SCALAR_OBJECTS_G(handlers)[type] = *arg;
+		zval_copy_ctor(SCALAR_OBJECTS_G(handlers)[type]);
+		INIT_PZVAL(SCALAR_OBJECTS_G(handlers)[type]);
+	} else {
+		zend_error(E_WARNING, "Expecting either a string or an object, %s given", zend_zval_type_name(arg));
+		return;
+	}
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_register_handler, 0, 0, 2)
 	ZEND_ARG_INFO(0, "type")
-	ZEND_ARG_INFO(0, "class")
+	ZEND_ARG_INFO(0, "arg")
 ZEND_END_ARG_INFO()
 
 const zend_function_entry scalar_objects_functions[] = {
@@ -319,7 +426,7 @@ zend_module_entry scalar_objects_module_entry = {
 	ZEND_RINIT(scalar_objects),	
 	ZEND_RSHUTDOWN(scalar_objects),
 	ZEND_MINFO(scalar_objects),
-	"0.1",
+	"0.2",
 	ZEND_MODULE_GLOBALS(scalar_objects),
 	NULL,
 	NULL,
@@ -329,8 +436,6 @@ zend_module_entry scalar_objects_module_entry = {
 
 ZEND_MINIT_FUNCTION(scalar_objects) {
 	zend_set_user_opcode_handler(ZEND_INIT_METHOD_CALL, scalar_objects_method_call_handler);
-	zend_set_user_opcode_handler(ZEND_DECLARE_LAMBDA_FUNCTION, scalar_objects_declare_lambda_function_handler);
-
 	return SUCCESS;
 }
 
@@ -341,13 +446,18 @@ ZEND_MSHUTDOWN_FUNCTION(scalar_objects)
 
 ZEND_RINIT_FUNCTION(scalar_objects)
 {
-	memset(SCALAR_OBJECTS_G(handlers), 0, SCALAR_OBJECTS_NUM_HANDLERS * sizeof(zend_class_entry *));
-
+	memset(SCALAR_OBJECTS_G(handlers), 0, SCALAR_OBJECTS_NUM_HANDLERS * sizeof(zval *));
 	return SUCCESS;
 }
 
 ZEND_RSHUTDOWN_FUNCTION(scalar_objects)
 {
+	int i;
+	for (i = 0; i < SCALAR_OBJECTS_NUM_HANDLERS; i++) {
+		if (SCALAR_OBJECTS_G(handlers)[i]) {
+			zval_dtor(SCALAR_OBJECTS_G(handlers)[i]);
+		}
+	}
 	return SUCCESS;
 }
 
