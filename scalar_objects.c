@@ -283,20 +283,10 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
         execute_data->call->fbc = fbc;
         execute_data->call->called_scope = ce;
         execute_data->call->is_ctor_call = 0;
-#endif
 
-#if ZEND_MODULE_API_NO < 20131226
-        zend_ptr_stack_3_push(&EG(arg_types_stack), execute_data->fbc, execute_data->object, execute_data->called_scope);
-
-        execute_data->fbc = fbc;
-        execute_data->called_scope = ce;
-        execute_data->object = obj;
-# ifdef ZEND_ENGINE_2_5
-	execute_data->call->object = obj;
-# endif
-#else
-	execute_data->call->num_additional_args = 1;
-	execute_data->call->object = handler;
+# ifdef ZEND_ENGINE_2_6
+        execute_data->call->object = handler;
+        execute_data->call->num_additional_args = 1;
 
         /* Pass $self */
         ZEND_VM_STACK_GROW_IF_NEEDED(1);
@@ -304,6 +294,15 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
                 Z_SET_ISREF_P(obj);
         }
         zend_vm_stack_push(obj TSRMLS_CC);
+# else
+	execute_data->call->object = obj;
+# endif
+#else
+        zend_ptr_stack_3_push(&EG(arg_types_stack), execute_data->fbc, execute_data->object, execute_data->called_scope);
+
+        execute_data->fbc = fbc;
+        execute_data->called_scope = ce;
+        execute_data->object = obj;
 #endif
 
 	FREE_OP(free_op2);
