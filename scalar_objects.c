@@ -242,12 +242,21 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 static int scalar_objects_declare_lambda_function_handler(ZEND_OPCODE_HANDLER_ARGS)
 {
 	zend_op *opline = execute_data->opline;
+	zend_execute_data *prev_execute_data = execute_data->prev_execute_data;
 	zval *this_ptr = (EG(This) && Z_TYPE_P(EG(This)) == IS_OBJECT) ? EG(This) : NULL;
 
 	zend_function *fn;
+	int closure_is_static, closure_is_being_defined_inside_static_context;
 	zend_hash_quick_find(EG(function_table), Z_STRVAL_P(opline->op1.zv), Z_STRLEN_P(opline->op1.zv), Z_HASH_P(opline->op1.zv), (void *) &fn);
 
-	zend_create_closure(&SO_EX_T(opline->result.var).tmp_var, fn, EG(scope), this_ptr TSRMLS_CC);
+	closure_is_static = fn->common.fn_flags & ZEND_ACC_STATIC;
+	closure_is_being_defined_inside_static_context = prev_execute_data && prev_execute_data->function_state.function->common.fn_flags & ZEND_ACC_STATIC;
+
+	if (closure_is_static || closure_is_being_defined_inside_static_context) {
+		zend_create_closure(&SO_EX_T(opline->result.var).tmp_var, fn, EG(called_scope), NULL TSRMLS_CC);
+	} else {
+		zend_create_closure(&SO_EX_T(opline->result.var).tmp_var, fn, EG(scope), this_ptr TSRMLS_CC);
+	}
 
 	execute_data->opline++;
 	return ZEND_USER_OPCODE_CONTINUE;
@@ -316,7 +325,7 @@ zend_module_entry scalar_objects_module_entry = {
 	scalar_objects_functions,
 	ZEND_MINIT(scalar_objects),
 	ZEND_MSHUTDOWN(scalar_objects),
-	ZEND_RINIT(scalar_objects),	
+	ZEND_RINIT(scalar_objects),
 	ZEND_RSHUTDOWN(scalar_objects),
 	ZEND_MINFO(scalar_objects),
 	"0.1",
