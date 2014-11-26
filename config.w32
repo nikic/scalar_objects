@@ -1,4 +1,3 @@
-// $Id$
 // vim:ft=javascript
 
 ARG_ENABLE("scalar_objects", "enable scalar_objects support", "no");
