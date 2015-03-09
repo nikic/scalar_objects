@@ -18,8 +18,8 @@
 namespace str;
 
 class HandlerWithCaseInsensitiveView extends Handler {
-    public function caseInsensitive() {
-        return new CaseInsensitiveView($this);
+    public static function caseInsensitive($self) {
+        return new CaseInsensitiveView($self);
     }
 }
 

@@ -126,21 +126,15 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 		opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC
 	);
 
-	/* __callStatic uses zend_call_method internally, which assumes $this is an object. We
-	 * detect this case by checking for ZEND_INTERNAL_FUNCTION, as __callStatic uses an
-	 * indirection via an internal wrapper function. */
-	if (fbc->type == ZEND_INTERNAL_FUNCTION) {
-		obj = NULL;
-	} else {
-		Z_ADDREF_P(obj);
-	}
+	Z_ADDREF_P(obj);
+	zend_vm_stack_push(obj TSRMLS_CC);
 
 	execute_data->call = execute_data->call_slots + opline->result.num;
 	execute_data->call->fbc = fbc;
 	execute_data->call->called_scope = ce;
-	execute_data->call->object = obj;
+	execute_data->call->object = NULL;
 	execute_data->call->is_ctor_call = 0;
-	execute_data->call->num_additional_args = 0;
+	execute_data->call->num_additional_args = 1;
 
 	FREE_OP(free_op2);
 	FREE_OP_IF_VAR(free_op1);
@@ -228,9 +222,7 @@ const zend_function_entry scalar_objects_functions[] = {
 };
 
 zend_module_entry scalar_objects_module_entry = {
-#if ZEND_MODULE_API_NO >= 20010901
 	STANDARD_MODULE_HEADER,
-#endif
 	"scalar_objects",
 	scalar_objects_functions,
 	ZEND_MINIT(scalar_objects),
@@ -238,7 +230,7 @@ zend_module_entry scalar_objects_module_entry = {
 	ZEND_RINIT(scalar_objects),
 	ZEND_RSHUTDOWN(scalar_objects),
 	ZEND_MINFO(scalar_objects),
-	"0.1",
+	"0.2",
 	ZEND_MODULE_GLOBALS(scalar_objects),
 	NULL,
 	NULL,

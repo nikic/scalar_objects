@@ -6,8 +6,8 @@ $this is not bound for closures in type handlers
 register_primitive_type_handler('array', 'ArrayHandler');
 
 class ArrayHandler {
-    public function method() {
-        $closure = function() { var_dump($this); };
+    public static function method($self) {
+        $closure = function() use($self) { var_dump($this); var_dump($self); };
         $closure();
     }
 }
@@ -19,3 +19,5 @@ $array->method();
 --EXPECTF--
 Notice: Undefined variable: this in %s on line %d
 NULL
+array(0) {
+}
