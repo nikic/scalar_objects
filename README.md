@@ -1,6 +1,10 @@
 Add support for method calls on primitive types in PHP
 =====================================================
 
+> **NOTE**: The master branch of this extension is only compatible with
+> PHP 5.6. If you want to use it with PHP 5.4 or PHP 5.5, use the
+> [version 0.1](https://github.com/nikic/scalar_objects/tree/0.1) branch.
+
 This extension implements the ability to register a class that handles the
 method calls to a certain primitive type (string, array, ...). As such it
 allows implementing APIs like `$str->length()`.
@@ -20,16 +24,15 @@ Registering type handlers
 
 Type handlers are registered through `register_primitive_type_handler`. The
 function takes a type name (like "string" or "array") and a class name. The
-class is defined just like any other PHP class. The only difference is that
-its `$this` variable won't be an object, but rather the primitive type that
-the class operates on:
+class should contain static methods, which receive the primitive type as the
+first parameter:
 
 ```php
 <?php
 
 class StringHandler {
-    public function length() {
-        return strlen($this);
+    public static function length($self) {
+        return strlen($self);
     }
 }
 
@@ -84,12 +87,8 @@ This extension has a number of limitations:
 
  * It is not possible to write `"str"->method()` or `[...]->method()` or `(...)->method()`. This
    is a restriction of the PHP parser that can not be changed through an extension.
- * Due to technical limitations, it is no longer possible to create *mutable* APIs for primitive
-   types in PHP 5.6 or higher. Modifying `$this` within the methods is not possible (or rather,
-   will have no effect, as you'd just be changing a copy).
- * Some features can not be used within the methods of the handler, because they rely on `$this`
-   being an object. Using these may result in a segmentation fault. The only such feature that
-   is currently known are array-style callbacks (`[$class, $method]` and `[$obj, $method]`).
-   However closures are explicitly guaranteed to work.
+ * Due to technical limitations, it is not possible to create *mutable* APIs for primitive
+   types. Modifying `$self` within the methods is not possible (or rather, will have no effect,
+   as you'd just be changing a copy).
 
   [windows_dlls]: http://windows.php.net/downloads/pecl/snaps/scalar_objects/20130301/
