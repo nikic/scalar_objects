@@ -83,53 +83,6 @@ static zval *get_object_zval_ptr_real(
 	}
 }
 
-static zval **get_zval_ptr_ptr_real(
-	int op_type, const znode_op *node, const zend_execute_data *execute_data,
-	zend_free_op *should_free, int type TSRMLS_DC
-) {
-	return zend_get_zval_ptr_ptr(op_type, node, execute_data, should_free, type TSRMLS_CC);
-}
-
-static zval **get_object_zval_ptr_ptr_real(
-	int op_type, const znode_op *node, const zend_execute_data *execute_data,
-	zend_free_op *should_free, int type TSRMLS_DC
-) {
-	if (op_type == IS_UNUSED) {
-		if (!EG(This)) {
-			zend_error(E_ERROR, "Using $this when not in object context");
-		}
-
-		should_free->var = 0;
-		return &EG(This);
-	} else {
-		return get_zval_ptr_ptr_real(op_type, node, execute_data, should_free, type TSRMLS_CC);
-	}
-}
-
-static zval *get_object_zval_with_ref_separation_attempt(
-	int op_type, const znode_op *node, const zend_execute_data *execute_data,
-	zend_free_op *should_free TSRMLS_DC
-) {
-	/* As of PHP 5.6 we can no longer support APIs that modify the object
-	 * for IS_VAR (at least not in any way that I can see and that wouldn't
-	 * require rewriting FETCH opcode logic). Just supporting it for IS_CV
-	 * would make little sense, so we drop the by-ref thing altogether. */
-#ifndef ZEND_ENGINE_2_6
-	zval **obj_ptr = get_object_zval_ptr_ptr_real(
-		op_type, node, execute_data, should_free, BP_VAR_R TSRMLS_CC
-	);
-
-	if (obj_ptr) {
-		SEPARATE_ZVAL_TO_MAKE_IS_REF(obj_ptr);
-		return *obj_ptr;
-	}
-#endif
-
-	return get_object_zval_ptr_real(
-		op_type, node, execute_data, should_free, BP_VAR_R TSRMLS_CC
-	);
-}
-
 static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 {
 	zend_op *opline = execute_data->opline;
@@ -169,8 +122,8 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	method = get_zval_ptr_real(
 		opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC
 	);
-	obj = get_object_zval_with_ref_separation_attempt(
-		opline->op1_type, &opline->op1, execute_data, &free_op1 TSRMLS_CC
+	obj = get_object_zval_ptr_real(
+		opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC
 	);
 
 	/* __callStatic uses zend_call_method internally, which assumes $this is an object. We
@@ -187,9 +140,7 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	execute_data->call->called_scope = ce;
 	execute_data->call->object = obj;
 	execute_data->call->is_ctor_call = 0;
-#ifdef ZEND_ENGINE_2_6
 	execute_data->call->num_additional_args = 0;
-#endif
 
 	FREE_OP(free_op2);
 	FREE_OP_IF_VAR(free_op1);
