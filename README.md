@@ -1,9 +1,9 @@
 Add support for method calls on primitive types in PHP
 =====================================================
 
-> **NOTE**: The master branch of this extension is only compatible with
-> PHP 5.5 and 5.6. If you want to use it with PHP 5.4, use the
-> [version 0.1](https://github.com/nikic/scalar_objects/tree/0.1) branch.
+> **NOTE**: The master branch of this extension implements a new calling
+> convention using an extra parameter. For the previous `$this` based
+> version see the [version 0.1][version_0_1] branch.
 
 This extension implements the ability to register a class that handles the
 method calls to a certain primitive type (string, array, ...). As such it
@@ -34,9 +34,17 @@ class StringHandler {
     public static function length($self) {
         return strlen($self);
     }
+
+    public static function startsWith($self, $other) {
+        return strpos($self, $other) === 0;
+    }
 }
 
 register_primitive_type_handler('string', 'StringHandler');
+
+$string = "abc";
+var_dump($string->length()); // int(3)
+var_dump($string->startsWith("a")) // bool(true)
 ```
 
 The valid type names are: `null`, `bool`, `int`, `float`, `string`, `array`
@@ -92,3 +100,4 @@ This extension has a number of limitations:
    as you'd just be changing a copy).
 
   [windows_dlls]: http://windows.php.net/downloads/pecl/snaps/scalar_objects/20130301/
+  [version_0_1]: https://github.com/nikic/scalar_objects/tree/0.1

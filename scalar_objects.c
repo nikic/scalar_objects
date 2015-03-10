@@ -14,8 +14,13 @@ ZEND_DECLARE_MODULE_GLOBALS(scalar_objects)
 ZEND_GET_MODULE(scalar_objects)
 #endif
 
+#ifdef ZEND_ENGINE_2_5
 #define SO_EX_CV(i)     (*EX_CV_NUM(execute_data, i))
 #define SO_EX_T(offset) (*EX_TMP_VAR(execute_data, offset))
+#else
+#define SO_EX_CV(i)     (execute_data)->CVs[(i)]
+#define SO_EX_T(offset) (*(temp_variable *) ((char *) execute_data->Ts + offset))
+#endif
 
 #define FREE_OP(should_free)                                           \
     if (should_free.var) {                                             \
@@ -64,7 +69,11 @@ static zval *get_zval_ptr_real(
 	int op_type, const znode_op *node, const zend_execute_data *execute_data,
 	zend_free_op *should_free, int type TSRMLS_DC
 ) {
+#ifdef ZEND_ENGINE_2_5
 	return zend_get_zval_ptr(op_type, node, execute_data, should_free, type TSRMLS_CC);
+#else
+	return zend_get_zval_ptr(op_type, node, execute_data->Ts, should_free, type TSRMLS_CC);
+#endif
 }
 
 static zval *get_object_zval_ptr_real(
@@ -206,16 +215,24 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	);
 
 	Z_ADDREF_P(obj);
+	fbc = scalar_objects_get_indirection_func(ce, fbc, Z_STRVAL_P(method), Z_STRLEN_P(method));
 
+#ifdef ZEND_ENGINE_2_5
 	execute_data->call = execute_data->call_slots + opline->result.num;
-	execute_data->call->fbc = scalar_objects_get_indirection_func(
-		ce, fbc, Z_STRVAL_P(method), Z_STRLEN_P(method));
+	execute_data->call->fbc = fbc;
 
 	execute_data->call->called_scope = ce;
 	execute_data->call->object = obj;
 	execute_data->call->is_ctor_call = 0;
-#ifdef ZEND_ENGINE_2_6
+# ifdef ZEND_ENGINE_2_6
 	execute_data->call->num_additional_args = 0;
+# endif
+#else
+	zend_ptr_stack_3_push(&EG(arg_types_stack), execute_data->fbc, execute_data->object, execute_data->called_scope);
+
+	execute_data->fbc = fbc;
+	execute_data->called_scope = ce;
+	execute_data->object = obj;
 #endif
 
 	FREE_OP(free_op2);
