@@ -62,6 +62,8 @@ load these APIs just include the `handlers/bootstrap.php` file.
 Installation
 ------------
 
+This extension supports PHP versions 5.4, 5.5 and 5.6.
+
 ### Unix
 
 In order to compile and install the extension run the following commands:
@@ -99,5 +101,5 @@ This extension has a number of limitations:
    types. Modifying `$self` within the methods is not possible (or rather, will have no effect,
    as you'd just be changing a copy).
 
-  [windows_dlls]: http://windows.php.net/downloads/pecl/snaps/scalar_objects/20130301/
+  [windows_dlls]: http://windows.php.net/downloads/pecl/snaps/scalar_objects/20150310/
   [version_0_1]: https://github.com/nikic/scalar_objects/tree/0.1
