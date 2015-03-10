@@ -83,10 +83,16 @@ static zval *get_object_zval_ptr_real(
 	}
 }
 
+typedef struct _indirection_function {
+	zend_internal_function fn;
+	zend_function *fbc;        /* Handler that needs to be invoked */
+} indirection_function;
+
 static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 {
-	zend_function *func = EG(current_execute_data)->function_state.function;
-	zend_class_entry *ce = func->common.scope, *prev_scope;
+	indirection_function *ind =
+		(indirection_function *) EG(current_execute_data)->function_state.function;
+	zend_class_entry *ce = ind->fn.scope;
 	zval *obj = getThis();
 	zval ***params = safe_emalloc(sizeof(zval **), ZEND_NUM_ARGS() + 1, 0);
 	zval *result_ptr;
@@ -99,7 +105,7 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 	fci.size = sizeof(fci);
 	/* fci.function_table = &ce->function_table; */
 	MAKE_STD_ZVAL(fci.function_name);
-	ZVAL_STRING(fci.function_name, func->common.function_name, 0);
+	ZVAL_STRING(fci.function_name, ind->fn.function_name, 0);
 	fci.symbol_table = NULL;
 	fci.retval_ptr_ptr = &result_ptr;
 	fci.param_count = ZEND_NUM_ARGS() + 1;
@@ -112,22 +118,7 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 	fcc.called_scope = EG(called_scope) && instanceof_function(EG(called_scope), ce TSRMLS_CC)
 		? EG(called_scope) : ce;
 	fcc.object_ptr = NULL;
-
-	prev_scope = EG(scope);
-	EG(scope) = EG(current_execute_data)->current_scope;
-	if (ce->get_static_method) {
-		fcc.function_handler = ce->get_static_method(
-			ce, Z_STRVAL_P(fci.function_name), Z_STRLEN_P(fci.function_name) TSRMLS_CC);
-	} else {
-		fcc.function_handler = zend_std_get_static_method(
-			ce, Z_STRVAL_P(fci.function_name), Z_STRLEN_P(fci.function_name), NULL TSRMLS_CC);
-	}
-	EG(scope) = prev_scope;
-
-	if (!fcc.function_handler) {
-		zend_error(E_ERROR, "Call to undefined method %s::%s()",
-			ce->name, Z_STRVAL_P(fci.function_name));
-	}
+	fcc.function_handler = ind->fbc;
 
 	if (zend_call_function(&fci, &fcc TSRMLS_CC) == SUCCESS && result_ptr) {
 		RETVAL_ZVAL_FAST(result_ptr);
@@ -136,22 +127,25 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 
 	zval_ptr_dtor(&fci.function_name);
 	efree(params);
-	efree(func);
+	efree(ind);
 }
 
 static zend_function *scalar_objects_get_indirection_func(
-	zend_class_entry *ce, const char *method_name, int method_len
+	zend_class_entry *ce, zend_function *fbc, const char *method_name, int method_len
 ) {
-	zend_internal_function *fn = emalloc(sizeof(zend_internal_function));
-	fn->type = ZEND_INTERNAL_FUNCTION;
-	fn->module = (ce->type == ZEND_INTERNAL_CLASS) ? ce->info.internal.module : NULL;
-	fn->handler = scalar_objects_indirection_func;
-	fn->arg_info = NULL;
-	fn->num_args = 0;
-	fn->scope = ce;
-	fn->fn_flags = ZEND_ACC_CALL_VIA_HANDLER;
-	fn->function_name = zend_str_tolower_dup(method_name, method_len);
-	return (zend_function *) fn;
+	indirection_function *ind = emalloc(sizeof(indirection_function));
+
+	ind->fn.type = ZEND_INTERNAL_FUNCTION;
+	ind->fn.module = (ce->type == ZEND_INTERNAL_CLASS) ? ce->info.internal.module : NULL;
+	ind->fn.handler = scalar_objects_indirection_func;
+	ind->fn.arg_info = NULL;
+	ind->fn.num_args = 0;
+	ind->fn.scope = ce;
+	ind->fn.fn_flags = ZEND_ACC_CALL_VIA_HANDLER;
+	ind->fn.function_name = zend_str_tolower_dup(method_name, method_len);
+
+	ind->fbc = fbc;
+	return (zend_function *) ind;
 }
 
 static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
@@ -177,7 +171,18 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 		zend_error(E_ERROR, "Call to a member function %s() on a non-object", Z_STRVAL_P(method));
 	}
 
-	fbc = scalar_objects_get_indirection_func(ce, Z_STRVAL_P(method), Z_STRLEN_P(method));
+	if (ce->get_static_method) {
+		fbc = ce->get_static_method(ce, Z_STRVAL_P(method), Z_STRLEN_P(method) TSRMLS_CC);
+	} else {
+		fbc = zend_std_get_static_method(
+			ce, Z_STRVAL_P(method), Z_STRLEN_P(method),
+			opline->op2_type == IS_CONST ? opline->op2.literal + 1 : NULL TSRMLS_CC
+		);
+	}
+
+	if (!fbc) {
+		zend_error(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
+	}
 
 	method = get_zval_ptr_real(
 		opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC
@@ -189,7 +194,9 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	Z_ADDREF_P(obj);
 
 	execute_data->call = execute_data->call_slots + opline->result.num;
-	execute_data->call->fbc = fbc;
+	execute_data->call->fbc = scalar_objects_get_indirection_func(
+		ce, fbc, Z_STRVAL_P(method), Z_STRLEN_P(method));
+
 	execute_data->call->called_scope = ce;
 	execute_data->call->object = obj; /* TODO: Some other way to pass the object? */
 	execute_data->call->is_ctor_call = 0;
