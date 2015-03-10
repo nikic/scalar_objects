@@ -138,13 +138,19 @@ static zend_function *scalar_objects_get_indirection_func(
 	ind->fn.type = ZEND_INTERNAL_FUNCTION;
 	ind->fn.module = (ce->type == ZEND_INTERNAL_CLASS) ? ce->info.internal.module : NULL;
 	ind->fn.handler = scalar_objects_indirection_func;
-	ind->fn.arg_info = NULL;
-	ind->fn.num_args = 0;
 	ind->fn.scope = ce;
 	ind->fn.fn_flags = ZEND_ACC_CALL_VIA_HANDLER;
-	ind->fn.function_name = zend_str_tolower_dup(method_name, method_len);
+	ind->fn.function_name = estrndup(method_name, method_len);
 
 	ind->fbc = fbc;
+	if (fbc->common.num_args > 1) {
+		ind->fn.arg_info = &fbc->common.arg_info[1];
+		ind->fn.num_args = fbc->common.num_args - 1;
+	} else {
+		ind->fn.arg_info = NULL;
+		ind->fn.num_args = 0;
+	}
+
 	return (zend_function *) ind;
 }
 
