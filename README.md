@@ -2,7 +2,7 @@ Add support for method calls on primitive types in PHP
 =====================================================
 
 > **NOTE**: The master branch of this extension is only compatible with
-> PHP 5.6. If you want to use it with PHP 5.4 or PHP 5.5, use the
+> PHP 5.5 and 5.6. If you want to use it with PHP 5.4, use the
 > [version 0.1](https://github.com/nikic/scalar_objects/tree/0.1) branch.
 
 This extension implements the ability to register a class that handles the

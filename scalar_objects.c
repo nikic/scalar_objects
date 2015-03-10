@@ -121,8 +121,16 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 	fcc.function_handler = ind->fbc;
 
 	if (zend_call_function(&fci, &fcc TSRMLS_CC) == SUCCESS && result_ptr) {
+#ifdef ZEND_ENGINE_2_6
 		RETVAL_ZVAL_FAST(result_ptr);
 		zval_ptr_dtor(&result_ptr);
+#else
+		if (Z_ISREF_P(result_ptr) || Z_REFCOUNT_P(result_ptr) > 1) {
+			RETVAL_ZVAL(result_ptr, 1, 1);
+		} else {
+			RETVAL_ZVAL(result_ptr, 0, 1);
+		}
+#endif
 	}
 
 	zval_ptr_dtor(&fci.function_name);
@@ -204,9 +212,11 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 		ce, fbc, Z_STRVAL_P(method), Z_STRLEN_P(method));
 
 	execute_data->call->called_scope = ce;
-	execute_data->call->object = obj; /* TODO: Some other way to pass the object? */
+	execute_data->call->object = obj;
 	execute_data->call->is_ctor_call = 0;
+#ifdef ZEND_ENGINE_2_6
 	execute_data->call->num_additional_args = 0;
+#endif
 
 	FREE_OP(free_op2);
 	FREE_OP_IF_VAR(free_op1);
