@@ -77,7 +77,7 @@ In order to compile and install the extension run the following commands:
 
 Download a [prebuilt Windows DLL][windows_dlls] that matches your PHP version
 and move it into the `ext/` directory of your PHP installation. Furthermore
-you'll have to add `extension=php_scalar_objects.dll` to you `php.ini`.
+you'll have to add `extension=php_scalar_objects.dll` to your `php.ini`.
 
 Testing the extension
 ---------------------
