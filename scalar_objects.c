@@ -25,6 +25,7 @@ ZEND_GET_MODULE(scalar_objects)
 #else
 # define Z_STR_P(zv) Z_STRVAL_P(zv), Z_STRLEN_P(zv)
 # define Z_TRY_ADDREF_P(zv) Z_ADDREF_P(zv)
+# define ZVAL_DEREF(zv)
 
 # define EX_LITERAL(op) (op).literal
 # define SO_THIS EG(This)
@@ -60,13 +61,13 @@ static zval *get_zval_ptr_safe(
 		case IS_CONST:
 			return EX_CONSTANT(*node);
 		case IS_CV:
-			if (Z_ISUNDEF_P(EX_VAR(node->var))) {
-				return NULL;
-			}
-			/* break missing intentionally */
 		case IS_TMP_VAR:
 		case IS_VAR:
-			return EX_VAR(node->var);
+		{
+			zval *zv = EX_VAR(node->var);
+			ZVAL_DEREF(zv);
+			return !Z_ISUNDEF_P(zv) ? zv : NULL;
+		}
 		default:
 			return NULL;
 	}
@@ -103,10 +104,12 @@ static zval *get_zval_ptr_real(
 	zend_free_op *should_free, int type TSRMLS_DC
 ) {
 #ifdef ZEND_ENGINE_2_5
-	return zend_get_zval_ptr(op_type, node, execute_data, should_free, type TSRMLS_CC);
+	zval *zv = zend_get_zval_ptr(op_type, node, execute_data, should_free, type TSRMLS_CC);
 #else
-	return zend_get_zval_ptr(op_type, node, execute_data->Ts, should_free, type TSRMLS_CC);
+	zval *zv = zend_get_zval_ptr(op_type, node, execute_data->Ts, should_free, type TSRMLS_CC);
 #endif
+	ZVAL_DEREF(zv);
+	return zv;
 }
 
 static zval *get_object_zval_ptr_real(
@@ -194,6 +197,7 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 		ZVAL_COPY_VALUE(return_value, &result);
 	}
 	zval_ptr_dtor(obj);
+	execute_data->func = NULL;
 #else
 	if (zend_call_function(&fci, &fcc TSRMLS_CC) == SUCCESS && result) {
 # ifdef ZEND_ENGINE_2_6
