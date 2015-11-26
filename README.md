@@ -62,7 +62,7 @@ load these APIs just include the `handlers/bootstrap.php` file.
 Installation
 ------------
 
-This extension supports PHP versions 5.4, 5.5 and 5.6.
+This extension supports PHP versions 5.4, 5.5, 5.6 and 7.0.
 
 ### Unix
 
@@ -95,8 +95,9 @@ Limitations
 
 This extension has a number of limitations:
 
- * It is not possible to write `"str"->method()` or `[...]->method()` or `(...)->method()`. This
-   is a restriction of the PHP parser that can not be changed through an extension.
+ * On PHP 5 it is not possible to write `"str"->method()` or `[...]->method()` or
+   `(...)->method()`. This is a restriction of the PHP parser that can not be changed through an
+   extension. On PHP 7 this syntax *is* supported.
  * Due to technical limitations, it is not possible to create *mutable* APIs for primitive
    types. Modifying `$self` within the methods is not possible (or rather, will have no effect,
    as you'd just be changing a copy).
