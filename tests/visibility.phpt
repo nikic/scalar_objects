@@ -15,6 +15,10 @@ class StringHandler {
 
 register_primitive_type_handler('string', 'StringHandler');
 
+set_exception_handler(function($e) {
+    echo "\nFatal error: {$e->getMessage()} in {$e->getFile()} on line {$e->getLine()}";
+});
+
 $str = "abc";
 $str->pub();
 $str->prot();

@@ -14,15 +14,21 @@ ZEND_DECLARE_MODULE_GLOBALS(scalar_objects)
 ZEND_GET_MODULE(scalar_objects)
 #endif
 
-#ifdef ZEND_ENGINE_2_5
-#define SO_EX_CV(i)     (*EX_CV_NUM(execute_data, i))
-#define SO_EX_T(offset) (*EX_TMP_VAR(execute_data, offset))
+#ifdef ZEND_ENGINE_3
+# define EX_LITERAL(op) EX_CONSTANT(op)
+# define SO_THIS (Z_OBJ(EX(This)) ? &EX(This) : NULL)
+# define FREE_OP(should_free) \
+	if (should_free) { \
+		zval_ptr_dtor_nogc(should_free); \
+	}
+# define FREE_OP_IF_VAR(should_free) FREE_OP(should_free)
 #else
-#define SO_EX_CV(i)     (execute_data)->CVs[(i)]
-#define SO_EX_T(offset) (*(temp_variable *) ((char *) execute_data->Ts + offset))
-#endif
+# define Z_STR_P(zv) Z_STRVAL_P(zv), Z_STRLEN_P(zv)
+# define Z_TRY_ADDREF_P(zv) Z_ADDREF_P(zv)
 
-#define FREE_OP(should_free)                                           \
+# define EX_LITERAL(op) (op).literal
+# define SO_THIS EG(This)
+# define FREE_OP(should_free)                                           \
     if (should_free.var) {                                             \
         if ((zend_uintptr_t)should_free.var & 1L) {                    \
             zval_dtor((zval*)((zend_uintptr_t)should_free.var & ~1L)); \
@@ -31,14 +37,40 @@ ZEND_GET_MODULE(scalar_objects)
         }                                                              \
     }
 
-#define FREE_OP_IF_VAR(should_free)                                                 \
+# define FREE_OP_IF_VAR(should_free)                                                 \
     if (should_free.var != NULL && (((zend_uintptr_t)should_free.var & 1L) == 0)) { \
         zval_ptr_dtor(&should_free.var);                                            \
     }
+#endif
+
+#ifdef ZEND_ENGINE_2_5
+#define SO_EX_CV(i)     (*EX_CV_NUM(execute_data, i))
+#define SO_EX_T(offset) (*EX_TMP_VAR(execute_data, offset))
+#else
+#define SO_EX_CV(i)     (execute_data)->CVs[(i)]
+#define SO_EX_T(offset) (*(temp_variable *) ((char *) execute_data->Ts + offset))
+#endif
+
 
 static zval *get_zval_ptr_safe(
 	int op_type, const znode_op *node, const zend_execute_data *execute_data
 ) {
+#ifdef ZEND_ENGINE_3
+	switch (op_type) {
+		case IS_CONST:
+			return EX_CONSTANT(*node);
+		case IS_CV:
+			if (Z_ISUNDEF_P(EX_VAR(node->var))) {
+				return NULL;
+			}
+			/* break missing intentionally */
+		case IS_TMP_VAR:
+		case IS_VAR:
+			return EX_VAR(node->var);
+		default:
+			return NULL;
+	}
+#else
 	switch (op_type) {
 		case IS_CONST:
 			return node->zv;
@@ -53,13 +85,14 @@ static zval *get_zval_ptr_safe(
 		default:
 			return NULL;
 	}
+#endif
 }
 
 static zval *get_object_zval_ptr_safe(
-	int op_type, const znode_op *node, const zend_execute_data *execute_data TSRMLS_DC
+	int op_type, const znode_op *node, zend_execute_data *execute_data TSRMLS_DC
 ) {
 	if (op_type == IS_UNUSED) {
-		return EG(This);
+		return SO_THIS;
 	} else {
 		return get_zval_ptr_safe(op_type, node, execute_data);
 	}
@@ -77,16 +110,20 @@ static zval *get_zval_ptr_real(
 }
 
 static zval *get_object_zval_ptr_real(
-	int op_type, const znode_op *node, const zend_execute_data *execute_data,
+	int op_type, const znode_op *node, zend_execute_data *execute_data,
 	zend_free_op *should_free, int type TSRMLS_DC
 ) {
 	if (op_type == IS_UNUSED) {
-		if (!EG(This)) {
+		if (!SO_THIS) {
 			zend_error(E_ERROR, "Using $this when not in object context");
 		}
 
+#ifdef ZEND_ENGINE_3
+		should_free = NULL;
+#else
 		should_free->var = 0;
-		return EG(This);
+#endif
+		return SO_THIS;
 	} else {
 		return get_zval_ptr_real(op_type, node, execute_data, should_free, type TSRMLS_CC);
 	}
@@ -95,52 +132,82 @@ static zval *get_object_zval_ptr_real(
 typedef struct _indirection_function {
 	zend_internal_function fn;
 	zend_function *fbc;        /* Handler that needs to be invoked */
+#ifdef ZEND_ENGINE_3
+	zval obj;
+#endif
 } indirection_function;
 
 static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 {
+#ifdef ZEND_ENGINE_3
+	indirection_function *ind = (indirection_function *) execute_data->func;
+	zval *obj = &ind->obj;
+	zval *params = safe_emalloc(sizeof(zval), ZEND_NUM_ARGS() + 1, 0);
+	zval result;
+#else
 	indirection_function *ind =
 		(indirection_function *) EG(current_execute_data)->function_state.function;
-	zend_class_entry *ce = ind->fn.scope;
 	zval *obj = getThis();
 	zval ***params = safe_emalloc(sizeof(zval **), ZEND_NUM_ARGS() + 1, 0);
-	zval *result_ptr;
+	zval *result;
+#endif
+
+	zend_class_entry *ce = ind->fn.scope;
 	zend_fcall_info fci;
 	zend_fcall_info_cache fcc;
 
-	params[0] = &obj;
-	zend_get_parameters_array_ex(ZEND_NUM_ARGS(), &params[1]);
-
 	fci.size = sizeof(fci);
-	/* fci.function_table = &ce->function_table; */
-	MAKE_STD_ZVAL(fci.function_name);
-	ZVAL_STRING(fci.function_name, ind->fn.function_name, 0);
 	fci.symbol_table = NULL;
-	fci.retval_ptr_ptr = &result_ptr;
 	fci.param_count = ZEND_NUM_ARGS() + 1;
 	fci.params = params;
-	fci.object_ptr = NULL;
 	fci.no_separation = 1;
 
 	fcc.initialized = 1;
 	fcc.calling_scope = ce;
-	fcc.called_scope = EG(called_scope) && instanceof_function(EG(called_scope), ce TSRMLS_CC)
-		? EG(called_scope) : ce;
-	fcc.object_ptr = NULL;
 	fcc.function_handler = ind->fbc;
 
-	if (zend_call_function(&fci, &fcc TSRMLS_CC) == SUCCESS && result_ptr) {
-#ifdef ZEND_ENGINE_2_6
-		RETVAL_ZVAL_FAST(result_ptr);
-		zval_ptr_dtor(&result_ptr);
+	zend_get_parameters_array_ex(ZEND_NUM_ARGS(), &params[1]);
+
+#ifdef ZEND_ENGINE_3
+	ZVAL_COPY_VALUE(&params[0], obj);
+	ZVAL_STR(&fci.function_name, ind->fn.function_name);
+	fci.retval = &result;
+	fci.object = NULL;
+
+	fcc.object = NULL;
+	fcc.called_scope = EX(called_scope) && instanceof_function(EX(called_scope), ce TSRMLS_CC)
+		? EX(called_scope) : ce;
 #else
-		if (Z_ISREF_P(result_ptr) || Z_REFCOUNT_P(result_ptr) > 1) {
-			RETVAL_ZVAL(result_ptr, 1, 1);
-		} else {
-			RETVAL_ZVAL(result_ptr, 0, 1);
-		}
+	params[0] = &obj;
+	MAKE_STD_ZVAL(fci.function_name);
+	ZVAL_STRING(fci.function_name, ind->fn.function_name, 0);
+	fci.retval_ptr_ptr = &result;
+	fci.object_ptr = NULL;
+
+	fcc.object_ptr = NULL;
+	fcc.called_scope = EG(called_scope) && instanceof_function(EG(called_scope), ce TSRMLS_CC)
+		? EG(called_scope) : ce;
 #endif
+
+#ifdef ZEND_ENGINE_3
+	if (zend_call_function(&fci, &fcc TSRMLS_CC) == SUCCESS && !Z_ISUNDEF(result)) {
+		ZVAL_COPY_VALUE(return_value, &result);
 	}
+	zval_ptr_dtor(obj);
+#else
+	if (zend_call_function(&fci, &fcc TSRMLS_CC) == SUCCESS && result) {
+# ifdef ZEND_ENGINE_2_6
+		RETVAL_ZVAL_FAST(result);
+		zval_ptr_dtor(&result);
+# else
+		if (Z_ISREF_P(result) || Z_REFCOUNT_P(result) > 1) {
+			RETVAL_ZVAL(result, 1, 1);
+		} else {
+			RETVAL_ZVAL(result, 0, 1);
+		}
+# endif
+	}
+#endif
 
 	zval_ptr_dtor(&fci.function_name);
 	efree(params);
@@ -148,32 +215,43 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 }
 
 static zend_function *scalar_objects_get_indirection_func(
-	zend_class_entry *ce, zend_function *fbc, const char *method_name, int method_len
+	zend_class_entry *ce, zend_function *fbc, zval *method, zval *obj
 ) {
 	indirection_function *ind = emalloc(sizeof(indirection_function));
+	zend_function *fn = (zend_function *) &ind->fn;
 
 	ind->fn.type = ZEND_INTERNAL_FUNCTION;
 	ind->fn.module = (ce->type == ZEND_INTERNAL_CLASS) ? ce->info.internal.module : NULL;
 	ind->fn.handler = scalar_objects_indirection_func;
 	ind->fn.scope = ce;
 	ind->fn.fn_flags = ZEND_ACC_CALL_VIA_HANDLER;
-	ind->fn.function_name = estrndup(method_name, method_len);
+
+#ifdef ZEND_ENGINE_3
+	ind->fn.function_name = zend_string_copy(Z_STR_P(method));
+	ZVAL_COPY_VALUE(&ind->obj, obj);
+#else
+	ind->fn.function_name = estrndup(Z_STRVAL_P(method), Z_STRLEN_P(method));
+#endif
 
 	ind->fbc = fbc;
 	if (fbc->common.num_args > 1) {
-		ind->fn.arg_info = &fbc->common.arg_info[1];
-		ind->fn.num_args = fbc->common.num_args - 1;
+		fn->common.arg_info = &fbc->common.arg_info[1];
+		fn->common.num_args = fbc->common.num_args - 1;
 	} else {
-		ind->fn.arg_info = NULL;
-		ind->fn.num_args = 0;
+		fn->common.arg_info = NULL;
+		fn->common.num_args = 0;
 	}
 
-	return (zend_function *) ind;
+#ifdef ZEND_ENGINE_3
+	zend_set_function_arg_flags(fn);
+#endif
+
+	return fn;
 }
 
-static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
+static int scalar_objects_method_call_handler(zend_execute_data *execute_data TSRMLS_DC)
 {
-	zend_op *opline = execute_data->opline;
+	const zend_op *opline = execute_data->opline;
 	zend_free_op free_op1, free_op2;
 	zval *obj, *method;
 	zend_class_entry *ce;
@@ -195,16 +273,12 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 	}
 
 	if (ce->get_static_method) {
-		fbc = ce->get_static_method(ce, Z_STRVAL_P(method), Z_STRLEN_P(method) TSRMLS_CC);
+		fbc = ce->get_static_method(ce, Z_STR_P(method) TSRMLS_CC);
 	} else {
 		fbc = zend_std_get_static_method(
-			ce, Z_STRVAL_P(method), Z_STRLEN_P(method),
-			opline->op2_type == IS_CONST ? opline->op2.literal + 1 : NULL TSRMLS_CC
+			ce, Z_STR_P(method),
+			opline->op2_type == IS_CONST ? EX_LITERAL(opline->op2) + 1 : NULL TSRMLS_CC
 		);
-	}
-
-	if (!fbc) {
-		zend_error(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
 	}
 
 	method = get_zval_ptr_real(
@@ -214,10 +288,31 @@ static int scalar_objects_method_call_handler(ZEND_OPCODE_HANDLER_ARGS)
 		opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC
 	);
 
-	Z_ADDREF_P(obj);
-	fbc = scalar_objects_get_indirection_func(ce, fbc, Z_STRVAL_P(method), Z_STRLEN_P(method));
+	if (!fbc) {
+#ifdef ZEND_ENGINE_3
+		if (!EG(exception)) {
+			zend_throw_error(NULL, "Call to undefined method %s::%s()",
+				ZSTR_VAL(ce->name), Z_STRVAL_P(method));
+		}
+		FREE_OP(free_op2);
+		FREE_OP_IF_VAR(free_op1);
+		return ZEND_USER_OPCODE_CONTINUE;
+#else
+		zend_error(E_ERROR, "Call to undefined method %s::%s()", ce->name, Z_STRVAL_P(method));
+#endif
+	}
 
-#ifdef ZEND_ENGINE_2_5
+	Z_TRY_ADDREF_P(obj);
+	fbc = scalar_objects_get_indirection_func(ce, fbc, method, obj);
+
+#ifdef ZEND_ENGINE_3
+	{
+		zend_execute_data *call = zend_vm_stack_push_call_frame(
+			ZEND_CALL_NESTED_FUNCTION, fbc, opline->extended_value, ce, NULL);
+		call->prev_execute_data = EX(call);
+		EX(call) = call;
+	}
+#elif defined(ZEND_ENGINE_2_5)
 	execute_data->call = execute_data->call_slots + opline->result.num;
 	execute_data->call->fbc = fbc;
 
@@ -248,7 +343,11 @@ static int get_type_from_string(const char *str) {
 	if (!strcasecmp(str, "null")) {
 		return IS_NULL;
 	} else if (!strcasecmp(str, "bool")) {
+#ifdef ZEND_ENGINE_3
+		return IS_TRUE;
+#else
 		return IS_BOOL;
+#endif
 	} else if (!strcasecmp(str, "int")) {
 		return IS_LONG;
 	} else if (!strcasecmp(str, "float")) {
@@ -285,6 +384,11 @@ ZEND_FUNCTION(register_primitive_type_handler) {
 	}
 
 	SCALAR_OBJECTS_G(handlers)[type] = ce;
+#ifdef ZEND_ENGINE_3
+	if (type == IS_TRUE) {
+		SCALAR_OBJECTS_G(handlers)[IS_FALSE] = ce;
+	}
+#endif
 }
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_register_handler, 0, 0, 2)
