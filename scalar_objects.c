@@ -197,10 +197,13 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 #else
 	if (zend_call_function(&fci, &fcc TSRMLS_CC) == SUCCESS && result) {
 # ifdef ZEND_ENGINE_2_6
-		RETVAL_ZVAL_FAST(result);
-		zval_ptr_dtor(&result);
+		zval_ptr_dtor(&return_value);
+		*return_value_ptr = result;
 # else
-		if (Z_ISREF_P(result) || Z_REFCOUNT_P(result) > 1) {
+		if (Z_ISREF_P(result)) {
+			zval_ptr_dtor(&return_value);
+			*return_value_ptr = result;
+		} else if (Z_REFCOUNT_P(result) > 1) {
 			RETVAL_ZVAL(result, 1, 1);
 		} else {
 			RETVAL_ZVAL(result, 0, 1);
@@ -219,7 +222,7 @@ static zend_function *scalar_objects_get_indirection_func(
 ) {
 	indirection_function *ind = emalloc(sizeof(indirection_function));
 	zend_function *fn = (zend_function *) &ind->fn;
-	uint32_t keep_flags = ZEND_ACC_RETURN_REFERENCE;
+	long keep_flags = ZEND_ACC_RETURN_REFERENCE;
 #ifdef ZEND_ENGINE_2_6
 	keep_flags |= ZEND_ACC_VARIADIC;
 #endif
