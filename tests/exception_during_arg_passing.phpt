@@ -2,7 +2,8 @@
 Exception occuring while passing arguments to a handler
 --SKIPIF--
 <?php
-if (version_compare(PHP_VERSION, '5.6.8-dev', '<')) die('skip Requires PHP bug fix');
+if (PHP_VERSION_ID < 50608) die('skip Requires PHP bug fix');
+if (PHP_VERSION_ID > 70000) die('skip Leaks on PHP 7 again, but cannot be easily fixed');
 --FILE--
 <?php
 
