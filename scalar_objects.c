@@ -15,6 +15,7 @@ ZEND_GET_MODULE(scalar_objects)
 #endif
 
 #ifdef ZEND_ENGINE_3
+typedef size_t strlen_t;
 # define EX_LITERAL(op) EX_CONSTANT(op)
 # define SO_THIS (Z_OBJ(EX(This)) ? &EX(This) : NULL)
 # define FREE_OP(should_free) \
@@ -23,6 +24,7 @@ ZEND_GET_MODULE(scalar_objects)
 	}
 # define FREE_OP_IF_VAR(should_free) FREE_OP(should_free)
 #else
+typedef int strlen_t;
 # define Z_STR_P(zv) Z_STRVAL_P(zv), Z_STRLEN_P(zv)
 # define Z_TRY_ADDREF_P(zv) Z_ADDREF_P(zv)
 # define ZVAL_DEREF(zv)
@@ -373,7 +375,7 @@ static int get_type_from_string(const char *str) {
 
 ZEND_FUNCTION(register_primitive_type_handler) {
 	char *type_str;
-	int type_str_len;
+	strlen_t type_str_len;
 	int type;
 	zend_class_entry *ce = NULL;
 
