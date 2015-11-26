@@ -219,12 +219,13 @@ static zend_function *scalar_objects_get_indirection_func(
 ) {
 	indirection_function *ind = emalloc(sizeof(indirection_function));
 	zend_function *fn = (zend_function *) &ind->fn;
+	uint32_t keep_flags = ZEND_ACC_RETURN_REFERENCE;
 
 	ind->fn.type = ZEND_INTERNAL_FUNCTION;
 	ind->fn.module = (ce->type == ZEND_INTERNAL_CLASS) ? ce->info.internal.module : NULL;
 	ind->fn.handler = scalar_objects_indirection_func;
 	ind->fn.scope = ce;
-	ind->fn.fn_flags = ZEND_ACC_CALL_VIA_HANDLER;
+	ind->fn.fn_flags = ZEND_ACC_CALL_VIA_HANDLER | (fbc->common.fn_flags & keep_flags);
 
 #ifdef ZEND_ENGINE_3
 	ind->fn.function_name = zend_string_copy(Z_STR_P(method));
