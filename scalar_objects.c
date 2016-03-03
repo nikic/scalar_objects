@@ -14,6 +14,18 @@ ZEND_DECLARE_MODULE_GLOBALS(scalar_objects)
 ZEND_GET_MODULE(scalar_objects)
 #endif
 
+#if ZEND_MODULE_API_NO >= 20121204
+#define ZEND_ENGINE_2_5
+#endif
+
+#if ZEND_MODULE_API_NO >= 20131226
+#define ZEND_ENGINE_2_6
+#endif
+
+#if ZEND_MODULE_API_NO >= 20160303
+#define ZEND_ENGINE_3_1
+#endif
+
 #ifdef ZEND_ENGINE_3
 typedef size_t strlen_t;
 # define EX_LITERAL(op) EX_CONSTANT(op)
@@ -162,7 +174,9 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 	zend_fcall_info_cache fcc;
 
 	fci.size = sizeof(fci);
+#ifndef ZEND_ENGINE_3_1
 	fci.symbol_table = NULL;
+#endif
 	fci.param_count = ZEND_NUM_ARGS() + 1;
 	fci.params = params;
 	fci.no_separation = 1;

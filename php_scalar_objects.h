@@ -35,14 +35,6 @@ ZEND_END_MODULE_GLOBALS(scalar_objects)
 #define SCALAR_OBJECTS_G(v) (scalar_objects_globals.v)
 #endif
 
-#if ZEND_MODULE_API_NO >= 20121204
-#define ZEND_ENGINE_2_5
-#endif
-
-#if ZEND_MODULE_API_NO >= 20131226
-#define ZEND_ENGINE_2_6
-#endif
-
 #endif
 
 /*
