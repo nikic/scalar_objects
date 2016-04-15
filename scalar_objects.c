@@ -194,8 +194,7 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 	fci.object = NULL;
 
 	fcc.object = NULL;
-	fcc.called_scope = EX(called_scope) && instanceof_function(EX(called_scope), ce TSRMLS_CC)
-		? EX(called_scope) : ce;
+	fcc.called_scope = zend_get_called_scope(execute_data);
 #else
 	params[0] = &obj;
 	MAKE_STD_ZVAL(fci.function_name);
