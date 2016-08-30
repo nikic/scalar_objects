@@ -7,7 +7,7 @@ register_primitive_type_handler('array', 'ArrayHandler');
 
 class ArrayHandler {
     public static function method($self) {
-        $closure = function() use($self) { var_dump($this); var_dump($self); };
+        $closure = function() use($self) { var_dump(isset($this)); var_dump($self); };
         $closure();
     }
 }
@@ -17,7 +17,6 @@ $array->method();
 
 ?>
 --EXPECTF--
-Notice: Undefined variable: this in %s on line %d
-NULL
+bool(false)
 array(0) {
 }
