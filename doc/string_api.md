@@ -142,7 +142,7 @@ Return the substring starting at `$realOffset` and having length `$realLength`.
 
 ---
 
-    string replaceSlice(string $replacement, int $offset, $length = null)
+    string splice(string $replacement, int $offset, $length = null)
 
 Let `$realOffset = _prepareOffset($offset)`
 and `$realLength = _prepareLength($realOffset, $length)`.
@@ -153,8 +153,9 @@ having length `$realLength` replaced by `$replacement`.
 > Notes:
 >
  * This method corresponds to `substr_replace`.
- * I considered also having a method `deleteSlice()`, but this seems to be a rather rare case, so
-   `replaceSlice("", ...)` should be sufficient.
+ * This was originally called `replaceSlice()` , but was renamed to `splice()` for consistency with
+   `splice`. It was considered also having a method `deleteSlice()`, but this seems to be a rather
+    rare case, so `splice("", ...)` should be sufficient.
  * Apart from this the notes from `slice()` apply.
 
 ### Search methods
