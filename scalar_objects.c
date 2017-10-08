@@ -28,7 +28,11 @@ ZEND_GET_MODULE(scalar_objects)
 
 #ifdef ZEND_ENGINE_3
 typedef size_t strlen_t;
-# define EX_LITERAL(op) EX_CONSTANT(op)
+# if PHP_VERSION_ID >= 70300
+#  define EX_LITERAL(opline, op) RT_CONSTANT(opline, op)
+# else
+#  define EX_LITERAL(opline, op) EX_CONSTANT(op)
+# endif
 # define SO_THIS (Z_OBJ(EX(This)) ? &EX(This) : NULL)
 # define FREE_OP(should_free) \
 	if (should_free) { \
@@ -41,7 +45,7 @@ typedef int strlen_t;
 # define Z_TRY_ADDREF_P(zv) Z_ADDREF_P(zv)
 # define ZVAL_DEREF(zv)
 
-# define EX_LITERAL(op) (op).literal
+# define EX_LITERAL(opline, op) (op).literal
 # define SO_THIS EG(This)
 # define FREE_OP(should_free)                                           \
     if (should_free.var) {                                             \
@@ -68,12 +72,13 @@ typedef int strlen_t;
 
 
 static zval *get_zval_ptr_safe(
-	int op_type, const znode_op *node, const zend_execute_data *execute_data
+	const zend_op *opline, int op_type, const znode_op *node,
+	const zend_execute_data *execute_data
 ) {
 #ifdef ZEND_ENGINE_3
 	switch (op_type) {
 		case IS_CONST:
-			return EX_CONSTANT(*node);
+			return EX_LITERAL(opline, *node);
 		case IS_CV:
 		case IS_TMP_VAR:
 		case IS_VAR:
@@ -104,20 +109,23 @@ static zval *get_zval_ptr_safe(
 }
 
 static zval *get_object_zval_ptr_safe(
-	int op_type, const znode_op *node, zend_execute_data *execute_data TSRMLS_DC
+	const zend_op *opline, int op_type, const znode_op *node,
+	zend_execute_data *execute_data TSRMLS_DC
 ) {
 	if (op_type == IS_UNUSED) {
 		return SO_THIS;
 	} else {
-		return get_zval_ptr_safe(op_type, node, execute_data);
+		return get_zval_ptr_safe(opline, op_type, node, execute_data);
 	}
 }
 
 static zval *get_zval_ptr_real(
-	int op_type, const znode_op *node, const zend_execute_data *execute_data,
-	zend_free_op *should_free, int type TSRMLS_DC
+	const zend_op *opline, int op_type, const znode_op *node,
+	const zend_execute_data *execute_data, zend_free_op *should_free, int type TSRMLS_DC
 ) {
-#ifdef ZEND_ENGINE_2_5
+#if PHP_VERSION_ID >= 70300
+	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data, should_free, type TSRMLS_CC);
+#elif defined(ZEND_ENGINE_2_5)
 	zval *zv = zend_get_zval_ptr(op_type, node, execute_data, should_free, type TSRMLS_CC);
 #else
 	zval *zv = zend_get_zval_ptr(op_type, node, execute_data->Ts, should_free, type TSRMLS_CC);
@@ -127,7 +135,7 @@ static zval *get_zval_ptr_real(
 }
 
 static zval *get_object_zval_ptr_real(
-	int op_type, const znode_op *node, zend_execute_data *execute_data,
+	const zend_op *opline, int op_type, const znode_op *node, zend_execute_data *execute_data,
 	zend_free_op *should_free, int type TSRMLS_DC
 ) {
 	if (op_type == IS_UNUSED) {
@@ -142,7 +150,7 @@ static zval *get_object_zval_ptr_real(
 #endif
 		return SO_THIS;
 	} else {
-		return get_zval_ptr_real(op_type, node, execute_data, should_free, type TSRMLS_CC);
+		return get_zval_ptr_real(opline, op_type, node, execute_data, should_free, type TSRMLS_CC);
 	}
 }
 
@@ -282,8 +290,8 @@ static int scalar_objects_method_call_handler(zend_execute_data *execute_data TS
 	/* First we fetch the ops without refcount changes or errors. Then we check whether we want
 	 * to handle this opcode ourselves or fall back to the original opcode. Only once we know for
 	 * certain that we will not fall back the ops are fetched for real. */
-	obj = get_object_zval_ptr_safe(opline->op1_type, &opline->op1, execute_data TSRMLS_CC);
-	method = get_zval_ptr_safe(opline->op2_type, &opline->op2, execute_data);
+	obj = get_object_zval_ptr_safe(opline, opline->op1_type, &opline->op1, execute_data TSRMLS_CC);
+	method = get_zval_ptr_safe(opline, opline->op2_type, &opline->op2, execute_data);
 
 	if (!obj || Z_TYPE_P(obj) == IS_OBJECT || Z_TYPE_P(method) != IS_STRING) {
 		return ZEND_USER_OPCODE_DISPATCH;
@@ -299,15 +307,15 @@ static int scalar_objects_method_call_handler(zend_execute_data *execute_data TS
 	} else {
 		fbc = zend_std_get_static_method(
 			ce, Z_STR_P(method),
-			opline->op2_type == IS_CONST ? EX_LITERAL(opline->op2) + 1 : NULL TSRMLS_CC
+			opline->op2_type == IS_CONST ? EX_LITERAL(opline, opline->op2) + 1 : NULL TSRMLS_CC
 		);
 	}
 
 	method = get_zval_ptr_real(
-		opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC
+		opline, opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R TSRMLS_CC
 	);
 	obj = get_object_zval_ptr_real(
-		opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC
+		opline, opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R TSRMLS_CC
 	);
 
 	if (!fbc) {
