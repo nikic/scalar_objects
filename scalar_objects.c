@@ -189,7 +189,9 @@ static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
 	fci.params = params;
 	fci.no_separation = 1;
 
+#if PHP_VERSION_ID < 70300
 	fcc.initialized = 1;
+#endif
 	fcc.calling_scope = ce;
 	fcc.function_handler = ind->fbc;
 
