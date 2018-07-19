@@ -62,7 +62,7 @@ load these APIs just include the `handlers/bootstrap.php` file.
 Installation
 ------------
 
-This extension supports PHP versions 5.4 to 7.1.
+This extension supports PHP versions 5.4 to 7.2.
 
 ### Unix
 
