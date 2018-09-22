@@ -162,7 +162,7 @@ typedef struct _indirection_function {
 #endif
 } indirection_function;
 
-static void scalar_objects_indirection_func(INTERNAL_FUNCTION_PARAMETERS)
+static ZEND_NAMED_FUNCTION(scalar_objects_indirection_func)
 {
 #ifdef ZEND_ENGINE_3
 	indirection_function *ind = (indirection_function *) execute_data->func;
