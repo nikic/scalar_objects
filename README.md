@@ -44,7 +44,7 @@ register_primitive_type_handler('string', 'StringHandler');
 
 $string = "abc";
 var_dump($string->length()); // int(3)
-var_dump($string->startsWith("a")) // bool(true)
+var_dump($string->startsWith("a")); // bool(true)
 ```
 
 The valid type names are: `null`, `bool`, `int`, `float`, `string`, `array`
