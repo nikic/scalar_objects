@@ -339,8 +339,13 @@ static int scalar_objects_method_call_handler(zend_execute_data *execute_data TS
 
 #ifdef ZEND_ENGINE_3
 	{
+#if PHP_VERSION_ID >= 70400
+		zend_execute_data *call = zend_vm_stack_push_call_frame(
+			ZEND_CALL_NESTED_FUNCTION, fbc, opline->extended_value, ce);
+#else
 		zend_execute_data *call = zend_vm_stack_push_call_frame(
 			ZEND_CALL_NESTED_FUNCTION, fbc, opline->extended_value, ce, NULL);
+#endif
 		call->prev_execute_data = EX(call);
 		EX(call) = call;
 	}
