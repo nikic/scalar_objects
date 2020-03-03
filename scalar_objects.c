@@ -67,11 +67,11 @@ static zval *get_zval_ptr_real(
 #if PHP_VERSION_ID >= 80000
 	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data, type);
 #elif PHP_VERSION_ID >= 70300
-	zend_free_op *should_free;
-	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data, should_free, type);
+	zend_free_op should_free;
+	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data, &should_free, type);
 #else
-	zend_free_op *should_free;
-	zval *zv = zend_get_zval_ptr(op_type, node, execute_data, should_free, type);
+	zend_free_op should_free;
+	zval *zv = zend_get_zval_ptr(op_type, node, execute_data, &should_free, type);
 #endif
 	ZVAL_DEREF(zv);
 	return zv;
