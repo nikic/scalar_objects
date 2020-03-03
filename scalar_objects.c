@@ -21,11 +21,10 @@ typedef size_t strlen_t;
 # define EX_LITERAL(opline, op) EX_CONSTANT(op)
 #endif
 #define SO_THIS (Z_OBJ(EX(This)) ? &EX(This) : NULL)
-#define FREE_OP(should_free) \
-	if (should_free) { \
-		zval_ptr_dtor_nogc(should_free); \
+#define FREE_OP(op) \
+	if (opline->op##_type & (IS_TMP_VAR|IS_VAR)) { \
+		zval_ptr_dtor_nogc(EX_VAR(opline->op.var)); \
 	}
-#define FREE_OP_IF_VAR(should_free) FREE_OP(should_free)
 
 #define SO_EX_CV(i)     (*EX_CV_NUM(execute_data, i))
 #define SO_EX_T(offset) (*EX_TMP_VAR(execute_data, offset))
@@ -63,11 +62,15 @@ static zval *get_object_zval_ptr_safe(
 
 static zval *get_zval_ptr_real(
 	const zend_op *opline, int op_type, const znode_op *node,
-	const zend_execute_data *execute_data, zend_free_op *should_free, int type
+	const zend_execute_data *execute_data, int type
 ) {
-#if PHP_VERSION_ID >= 70300
+#if PHP_VERSION_ID >= 80000
+	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data, type);
+#elif PHP_VERSION_ID >= 70300
+	zend_free_op *should_free;
 	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data, should_free, type);
 #else
+	zend_free_op *should_free;
 	zval *zv = zend_get_zval_ptr(op_type, node, execute_data, should_free, type);
 #endif
 	ZVAL_DEREF(zv);
@@ -76,17 +79,16 @@ static zval *get_zval_ptr_real(
 
 static zval *get_object_zval_ptr_real(
 	const zend_op *opline, int op_type, const znode_op *node, zend_execute_data *execute_data,
-	zend_free_op *should_free, int type
+	int type
 ) {
 	if (op_type == IS_UNUSED) {
 		if (!SO_THIS) {
 			zend_error(E_ERROR, "Using $this when not in object context");
 		}
 
-		should_free = NULL;
 		return SO_THIS;
 	} else {
-		return get_zval_ptr_real(opline, op_type, node, execute_data, should_free, type);
+		return get_zval_ptr_real(opline, op_type, node, execute_data, type);
 	}
 }
 
@@ -154,6 +156,7 @@ static zend_function *scalar_objects_get_indirection_func(
 	ind->fn.scope = ce;
 	ind->fn.fn_flags = ZEND_ACC_CALL_VIA_HANDLER | (fbc->common.fn_flags & keep_flags);
 	ind->fn.num_args = fbc->common.num_args - 1;
+	ind->fn.required_num_args = fbc->common.required_num_args - 1;
 
 	ind->fbc = fbc;
 	if (fbc->common.arg_info) {
@@ -172,7 +175,6 @@ static zend_function *scalar_objects_get_indirection_func(
 static int scalar_objects_method_call_handler(zend_execute_data *execute_data)
 {
 	const zend_op *opline = execute_data->opline;
-	zend_free_op free_op1, free_op2;
 	zval *obj, *method;
 	zend_class_entry *ce;
 	zend_function *fbc;
@@ -201,20 +203,16 @@ static int scalar_objects_method_call_handler(zend_execute_data *execute_data)
 		);
 	}
 
-	method = get_zval_ptr_real(
-		opline, opline->op2_type, &opline->op2, execute_data, &free_op2, BP_VAR_R
-	);
-	obj = get_object_zval_ptr_real(
-		opline, opline->op1_type, &opline->op1, execute_data, &free_op1, BP_VAR_R
-	);
+	method = get_zval_ptr_real(opline, opline->op2_type, &opline->op2, execute_data, BP_VAR_R);
+	obj = get_object_zval_ptr_real(opline, opline->op1_type, &opline->op1, execute_data, BP_VAR_R);
 
 	if (!fbc) {
 		if (!EG(exception)) {
 			zend_throw_error(NULL, "Call to undefined method %s::%s()",
 				ZSTR_VAL(ce->name), Z_STRVAL_P(method));
 		}
-		FREE_OP(free_op2);
-		FREE_OP_IF_VAR(free_op1);
+		FREE_OP(op2);
+		FREE_OP(op1);
 		return ZEND_USER_OPCODE_CONTINUE;
 	}
 
@@ -233,8 +231,8 @@ static int scalar_objects_method_call_handler(zend_execute_data *execute_data)
 		EX(call) = call;
 	}
 
-	FREE_OP(free_op2);
-	FREE_OP_IF_VAR(free_op1);
+	FREE_OP(op2);
+	FREE_OP(op1);
 
 	execute_data->opline++;
 	return ZEND_USER_OPCODE_CONTINUE;
