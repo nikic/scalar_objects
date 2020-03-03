@@ -12,5 +12,6 @@ before_script:
   - phpize
   - ./configure --enable-scalar-objects
   - make
+  - phpenv config-rm xdebug.ini
 
 script: REPORT_EXIT_STATUS=1 php run-tests.php -p `which php` --show-diff -d extension=`pwd`/modules/scalar_objects.so -q
