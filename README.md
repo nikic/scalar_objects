@@ -1,10 +1,6 @@
 Add support for method calls on primitive types in PHP
 =====================================================
 
-> **NOTE**: The master branch of this extension implements a new calling
-> convention using an extra parameter. For the previous `$this` based
-> version see the [version 0.1][version_0_1] branch.
-
 This extension implements the ability to register a class that handles the
 method calls to a certain primitive type (string, array, ...). As such it
 allows implementing APIs like `$str->length()`.
@@ -62,7 +58,8 @@ load these APIs just include the `handlers/bootstrap.php` file.
 Installation
 ------------
 
-This extension supports PHP versions 5.4 to 7.2.
+The master branch supports PHP version 7.0 to 8.0. Use the [version 0.2][version_0_2]
+branch for PHP 5 support.
 
 ### Unix
 
@@ -95,12 +92,10 @@ Limitations
 
 This extension has a number of limitations:
 
- * On PHP 5 it is not possible to write `"str"->method()` or `[...]->method()` or
-   `(...)->method()`. This is a restriction of the PHP parser that can not be changed through an
-   extension. On PHP 7 this syntax *is* supported.
  * Due to technical limitations, it is not possible to create *mutable* APIs for primitive
    types. Modifying `$self` within the methods is not possible (or rather, will have no effect,
    as you'd just be changing a copy).
 
   [windows_dlls]: http://windows.php.net/downloads/pecl/snaps/scalar_objects/20170414/
+  [version_0_2]: https://github.com/nikic/scalar_objects/tree/0.2
   [version_0_1]: https://github.com/nikic/scalar_objects/tree/0.1
