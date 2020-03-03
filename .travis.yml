@@ -5,13 +5,13 @@ php:
   - 7.1
   - 7.2
   - 7.3
-  - 7.4snapshot
+  - 7.4
   - nightly
 
 before_script:
   - phpize
   - ./configure --enable-scalar-objects
   - make
-  - phpenv config-rm xdebug.ini
+  - if [ $TRAVIS_PHP_VERSION != 'nightly' ]; then phpenv config-rm xdebug.ini; fi
 
 script: REPORT_EXIT_STATUS=1 php run-tests.php -p `which php` --show-diff -d extension=`pwd`/modules/scalar_objects.so -q
