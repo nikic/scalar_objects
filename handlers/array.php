@@ -103,7 +103,7 @@ namespace arr {
          * @see http://php.net/manual/en/function.array-uintersect-uassoc.php
          * Compute intersection of values, considering keys or not.
          */
-        public static function intersectValue(array $self, callable|int $valComparator, callable $keyComparator, iterable ...$arrays): array
+        public static function intersectValue(array $self, callable|int $valComparator, callable|int $keyComparator, iterable ...$arrays): array
         {
             $msg1 = "Only BUILDIN_VALUE_COMPARATOR can be used";
             $msg2 = "Only IGNORE_KEY_COMPARATOR or BUILDIN_KEY_COMPARATOR can be used";
