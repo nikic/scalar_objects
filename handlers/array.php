@@ -30,7 +30,7 @@ namespace arr {
          * @see https://www.php.net/manual/en/function.array-reverse.php
          * Sort and/or reverse keys.
          */
-        public static function sortKey(array $self, callable $sorter = null, bool $reverse = false, bool $insensitive = false): array
+        public static function sortKey(array $self, callable|int $sorter = null, bool $reverse = false, bool $insensitive = false): array
         {
             $sorter ??= SORT_REGULAR;
             $type = (is_callable($sorter) ? 0 : $sorter) | ($insensitive ? SORT_FLAG_CASE : 0);
@@ -65,7 +65,7 @@ namespace arr {
          * @see http://php.net/manual/en/function.array-udiff-uassoc.php
          * Compute difference of values, considering keys or not.
          */
-        public static function diffValue(array $self, callable|int $valComparator, callable $keyComparator, iterable ...$arrays): array
+        public static function diffValue(array $self, callable|int $valComparator, callable|int $keyComparator, iterable ...$arrays): array
         {
             $msg1 = "Only BUILDIN_VALUE_COMPARATOR can be used";
             $msg2 = "Only IGNORE_KEY_COMPARATOR or BUILDIN_KEY_COMPARATOR can be used";
@@ -152,7 +152,7 @@ namespace arr {
          * @see http://php.net/manual/en/function.array-intersect-ukey.php
          * Computes the intersection using a callback function on the keys for comparison.
          */
-        public static function intersectKey(array $self, callable $keyComparator, iterable ...$arrays): array
+        public static function intersectKey(array $self, callable|int $keyComparator, iterable ...$arrays): array
         {
             if ($keyComparator == BUILDIN_KEY_COMPARATOR) {
                 return array_intersect_key($self, ...$arrays);
