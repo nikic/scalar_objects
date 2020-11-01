@@ -65,7 +65,7 @@ static zval *get_zval_ptr_real(
 	const zend_execute_data *execute_data, int type
 ) {
 #if PHP_VERSION_ID >= 80000
-	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data, type);
+	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data);
 #elif PHP_VERSION_ID >= 70300
 	zend_free_op should_free;
 	zval *zv = zend_get_zval_ptr(opline, op_type, node, execute_data, &should_free, type);
@@ -114,7 +114,11 @@ static ZEND_NAMED_FUNCTION(scalar_objects_indirection_func)
 #endif
 	fci.param_count = ZEND_NUM_ARGS() + 1;
 	fci.params = params;
+#if PHP_VERSION_ID >= 80000
+	fci.named_params = NULL;
+#else
 	fci.no_separation = 1;
+#endif
 
 #if PHP_VERSION_ID < 70300
 	fcc.initialized = 1;

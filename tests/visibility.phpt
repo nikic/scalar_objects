@@ -28,4 +28,4 @@ $str->prot();
 Public
 Protected
 
-Fatal error: Call to protected method StringHandler::prot() from context '' in %s on line %d
+Fatal error: Call to protected method StringHandler::prot() from %s in %s on line %d
