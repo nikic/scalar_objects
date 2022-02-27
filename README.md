@@ -58,8 +58,8 @@ load these APIs just include the `handlers/bootstrap.php` file.
 Installation
 ------------
 
-The master branch supports PHP version 7.0 to 8.0. Use the [version 0.2][version_0_2]
-branch for PHP 5 support.
+The master branch supports PHP version 7.0 to 8.1. The extension is incompatible
+with the JIT compiler.
 
 ### Unix
 
