@@ -1,0 +1,56 @@
+name: Run tests
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Execute tests on ${{ matrix.operating-system }} with PHP ${{ matrix.php-versions }}
+    runs-on: ${{ matrix.operating-system }}
+    strategy:
+      fail-fast: false
+      matrix:
+        operating-system:
+          - "ubuntu-latest"
+          - "macos-latest"
+        php-versions:
+          - "7.0"
+          - "7.1"
+          - "7.2"
+          - "7.3"
+          - "7.4"
+          - "8.0"
+          - "8.1"
+          - "nightly"
+    steps:
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-versions }}
+          coverage: none
+          tools: phpize
+        env:
+          update: true
+
+      - uses: actions/checkout@v3
+
+      - name: Setup extension
+        run: |
+          phpize
+          ./configure --enable-scalar-objects
+          make
+          sudo make install
+
+      - name: Make test
+        run: make test
+
+      - name: Run tests
+        env:
+          REPORT_EXIT_STATUS: 1
+        run: php run-tests.php -p `which php` --show-diff -d extension=`pwd`/modules/scalar_objects.so -q
