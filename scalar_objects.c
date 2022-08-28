@@ -159,6 +159,7 @@ static zend_function *scalar_objects_get_indirection_func(
 	ind->fn.handler = scalar_objects_indirection_func;
 	ind->fn.scope = ce;
 	ind->fn.fn_flags = ZEND_ACC_CALL_VIA_HANDLER | (fbc->common.fn_flags & keep_flags);
+	ind->fn.fn_flags |= ZEND_ACC_USER_ARG_INFO;
 	ind->fn.num_args = fbc->common.num_args - 1;
 	ind->fn.required_num_args = fbc->common.required_num_args - 1;
 #if PHP_VERSION_ID >= 80000
