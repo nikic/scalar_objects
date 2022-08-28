@@ -325,6 +325,7 @@ length of the main string is not divisible by the chunk length, then the last ch
 >
  * This function corresponds to `str_split`.
  * It is perfectly valid to have a chunk length that is longer than the main string.
+ * Chunking an empty string results in an empty array.
  * The name `chunk()` was chosen, because `split()` seems more appropriate for the `explode`
    equivalent. Furthermore the corresponding array functionality is also named `chunk()`.
 

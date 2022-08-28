@@ -499,9 +499,7 @@ count(""): int(1)
 count("", 0): int(1)
 count("", 0, 0): int(1)
 repeat(3): string(0) ""
-chunk(3): array(1) {
-  [0]=>
-  string(0) ""
+chunk(3): array(0) {
 }
 replace("foo", "bar"): string(0) ""
 replace("foo", "bar", 1): string(0) ""

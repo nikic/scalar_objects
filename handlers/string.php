@@ -125,6 +125,10 @@ class Handler {
 
     public static function chunk($self, $chunkLength = 1) {
         $self->verifyPositive($chunkLength, 'Chunk length');
+        if ($self === '') {
+            // str_split() prior to PHP 8.2 is buggy and returns [''] instead.
+            return [];
+        }
         return str_split($self, $chunkLength);
     }
 
