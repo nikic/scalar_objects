@@ -82,10 +82,7 @@ static zval *get_object_zval_ptr_real(
 	int type
 ) {
 	if (op_type == IS_UNUSED) {
-		if (!SO_THIS) {
-			zend_error(E_ERROR, "Using $this when not in object context");
-		}
-
+		ZEND_ASSERT(SO_THIS && "Checked by get_object_zval_ptr_safe() beforehand");
 		return SO_THIS;
 	} else {
 		return get_zval_ptr_real(opline, op_type, node, execute_data, type);
